@@ -1,0 +1,25 @@
+# Default experiment configuration
+# CLI flags override these values.
+
+# Search parameters
+budget_nodes: 5000
+max_depth: 20
+w: 1.5          # Weighted A* suboptimality factor (H4)
+
+# Risk heuristic
+lambda_risk: 50.0
+
+# Scenario / algorithm defaults (single-run mode)
+scenario: single_thermal
+algorithm: astar
+variant: H2
+seed: 0
+
+# Scorer path (relative to project root; set after training)
+# scorer: experiments/scorers/isolation_forest.joblib
+
+# Output
+output: experiments/results/results.csv
+
+# Sweep seeds (used in --sweep mode)
+seeds: 10
