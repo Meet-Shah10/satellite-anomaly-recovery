@@ -58,49 +58,53 @@ class FaultProfile:
 
 THERMAL_RUNAWAY = FaultProfile(
     name='thermal_runaway',
-    fault_heat_payload=25.0,      # stuck heater / electronics overheating
-    temp_payload_override=42.0,   # payload already warm at fault onset
+    fault_heat_payload=35.0,      # stuck relay: persistent 35 W extra heat on payload
+    temp_payload_override=58.0,   # payload already above nominal 55 °C at fault onset
 )
 """
-Payload temperature rises due to an uncontrolled internal heat source (e.g.
-stuck heater relay or overheating electronics).  Without intervention the
-payload temperature exceeds the 70 °C hard limit.  The heater draws battery
-power that is already stressed by the elevated load, creating a power–thermal
-cascade.
+Payload temperature has already breached the nominal upper limit (55 °C) due
+to an uncontrolled internal heat source (e.g. stuck heater relay or overheating
+electronics).  The 35 W persistent fault drives the payload toward the 70 °C
+hard limit.  Recovery must shed heat-generating loads or cool the node before
+the hard limit is breached.
 """
 
 BATTERY_DEGRADATION = FaultProfile(
     name='battery_degradation',
-    fault_heat_battery=8.0,       # increased internal resistance → ohmic heat
-    soc_override=0.28,            # battery already depleted at fault onset
+    fault_heat_battery=12.0,      # increased internal resistance → ohmic heat
+    fault_extra_load=10.0,        # elevated bus draw from degraded regulation
+    soc_override=0.28,            # battery already below nominal 35 % floor
+    temp_battery_override=42.0,   # battery warm from self-discharge
 )
 """
 Internal battery resistance increases (e.g. cell degradation or partial
-short), causing extra self-heating and accelerated discharge.  Low SoC
-combined with battery thermal stress stresses the hard floor at 15 % SoC
-and the 50 °C battery temperature hard limit.
+short), causing extra self-heating and accelerated discharge.  Initial SoC
+is already below the 35 % nominal floor.  Recovery must reduce load and wait
+for charging while keeping battery temperature below the 50 °C hard limit.
 """
 
 HIGH_BUS_LOAD = FaultProfile(
     name='high_bus_load',
-    fault_extra_load=35.0,        # rogue consumer draws 35 W extra
-    soc_override=0.32,
+    fault_extra_load=25.0,        # rogue consumer draws 25 W extra (significant but recoverable)
+    soc_override=0.30,            # battery below nominal 35 % floor
 )
 """
-An uncontrolled consumer (e.g. failed relay, latchup) draws 35 W of
-unscheduled bus current.  Combined with a low initial SoC the spacecraft
-cannot sustain the load through eclipse, threatening the SoC floor.
+An uncontrolled consumer (e.g. failed relay, latchup) draws 25 W of
+unscheduled bus current, pushing SoC below the 35 % nominal floor.
+With the payload on, total load exceeds solar capacity.  Recovery must
+shed sheddable loads to arrest the SoC decline and allow recharging.
 """
 
 CASCADE_THERMAL_POWER = FaultProfile(
     name='cascade_thermal_power',
-    fault_heat_payload=18.0,
-    fault_extra_load=20.0,
-    soc_override=0.30,
-    temp_payload_override=38.0,
+    fault_heat_payload=28.0,      # payload overheating
+    fault_extra_load=20.0,        # elevated bus load
+    soc_override=0.28,            # low SoC at fault onset
+    temp_payload_override=57.0,   # payload already over nominal limit
 )
 """
 Simultaneous thermal runaway on the payload and elevated bus load.
+Both SoC and payload temperature are outside their nominal bands at onset.
 This cascading scenario is the hardest for rule-based recovery because
 shedding the payload cools the payload node but removes a thermal source
 that was keeping the bus warm, and the bus then risks hitting the −20 °C

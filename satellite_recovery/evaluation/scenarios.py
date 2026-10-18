@@ -116,29 +116,29 @@ def _s(name, fault, desc, orbit_phase=0.65) -> Scenario:
 SINGLE_THERMAL = _s(
     name='single_thermal',
     fault='thermal_runaway',
-    desc='Isolated thermal runaway on payload node (eclipse)',
-    orbit_phase=0.66,   # eclipse: no solar, maximal thermal stress
+    desc='Isolated thermal runaway on payload node (eclipse onset)',
+    orbit_phase=0.62,   # early eclipse: payload heats without solar assist
 )
 
 SINGLE_POWER = _s(
     name='single_power',
     fault='battery_degradation',
-    desc='Battery degradation with low initial SoC (eclipse)',
-    orbit_phase=0.68,
+    desc='Battery degradation with low initial SoC (sunlit — charging possible)',
+    orbit_phase=0.20,   # sunlit arc: solar charging available to recover SoC
 )
 
 SINGLE_LOAD = _s(
     name='single_load',
     fault='high_bus_load',
-    desc='Unexpected high bus load with low initial SoC',
-    orbit_phase=0.50,   # mid-eclipse
+    desc='Unexpected high bus load — sunlit arc (load shed + solar recovery)',
+    orbit_phase=0.25,   # sunlit arc: solar charging available once load shed
 )
 
 CASCADE = _s(
     name='cascade',
     fault='cascade_thermal_power',
     desc='Simultaneous thermal runaway + high bus load (hard cascade)',
-    orbit_phase=0.65,
+    orbit_phase=0.30,   # sunlit arc: solar available, but thermal + power both stressed
 )
 
 # Sunlit variants (easier: solar power available)
@@ -153,5 +153,5 @@ SINGLE_POWER_SUN = _s(
     name='single_power_sun',
     fault='battery_degradation',
     desc='Battery degradation — sunlit arc',
-    orbit_phase=0.20,
+    orbit_phase=0.15,
 )

@@ -82,14 +82,21 @@ def build_algorithm(
     w:            float,
 ):
     cls = ALGORITHM_MAP[name]
-    kwargs: dict = dict(
-        budget_nodes=budget_nodes,
-        max_depth=max_depth,
-        lambda_risk=lambda_risk,
-    )
     if name in ('astar', 'idastar', 'rbfs'):
-        kwargs['variant'] = variant
-        kwargs['w']       = w
+        kwargs: dict = dict(
+            budget_nodes=budget_nodes,
+            max_depth=max_depth,
+            lambda_risk=lambda_risk,
+            variant=variant,
+            w=w,
+        )
+    else:
+        # Local search: uses budget_evals and lambda_risk; no variant/w
+        kwargs = dict(
+            budget_evals=budget_nodes,   # map budget_nodes → budget_evals
+            max_depth=max_depth,
+            lambda_risk=lambda_risk,
+        )
     return cls(**kwargs)
 
 
