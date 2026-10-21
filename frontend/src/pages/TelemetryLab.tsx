@@ -1,0 +1,253 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { LineChart, AlertTriangle, Database, Sun, Moon } from 'lucide-react';
+import { api, ApiError } from '../api/client';
+import type { TelemetrySampleResponse, TelemetryWindow } from '../api/types';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { ErrorAlert } from '../components/common/ErrorAlert';
+import { WindowExplorerBar } from '../components/telemetry/WindowExplorerBar';
+import { AnomalyScoreCard } from '../components/telemetry/AnomalyScoreCard';
+import { MultiChannelChart } from '../components/telemetry/MultiChannelChart';
+import { WindowComparisonView } from '../components/telemetry/WindowComparisonView';
+import { ChannelCatalogPanel } from '../components/telemetry/ChannelCatalogPanel';
+
+export const TelemetryLab: React.FC = () => {
+  const [sampleData, setSampleData] = useState<TelemetrySampleResponse | null>(null);
+  const [selectedWindowIndex, setSelectedWindowIndex] = useState<number>(0);
+  const [isSeeded, setIsSeeded] = useState<boolean>(false);
+  const [activeSeed, setActiveSeed] = useState<number | null>(null);
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch telemetry from backend
+  const fetchTelemetry = useCallback(
+    async (params?: { window_index?: number; n_windows?: number; seed?: number }) => {
+      setIsFetching(true);
+      setError(null);
+      try {
+        const data = await api.getTelemetrySample(params);
+        setSampleData(data);
+
+        // Update selected window to first returned if current is not in the new batch
+        const returnedIndices = data.windows.map((w) => w.window_index);
+        if (!returnedIndices.includes(selectedWindowIndex) && data.windows.length > 0) {
+          setSelectedWindowIndex(data.windows[0].window_index);
+        }
+
+        if (params?.seed !== undefined) {
+          setIsSeeded(true);
+          setActiveSeed(params.seed);
+        } else {
+          setIsSeeded(false);
+          setActiveSeed(null);
+        }
+      } catch (err) {
+        const msg =
+          err instanceof ApiError ? err.detail : 'Failed to retrieve telemetry sample from backend.';
+        setError(msg);
+      } finally {
+        setIsFetching(false);
+        setLoading(false);
+      }
+    },
+    [selectedWindowIndex]
+  );
+
+  // Initial load on mount
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await api.getTelemetrySample({ window_index: 0, n_windows: 3 });
+        if (active) {
+          setSampleData(data);
+          if (data.windows.length > 0) {
+            setSelectedWindowIndex(data.windows[0].window_index);
+          }
+        }
+      } catch (err) {
+        if (active) {
+          const msg =
+            err instanceof ApiError ? err.detail : 'Failed to retrieve nominal telemetry dataset.';
+          setError(msg);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleLoadWindow = async (index: number, count: number) => {
+    await fetchTelemetry({ window_index: index, n_windows: count });
+  };
+
+  const handleLoadSeeded = async (seed: number, count: number) => {
+    await fetchTelemetry({ seed, n_windows: count });
+  };
+
+  if (loading) {
+    return <LoadingSpinner label="Loading Offline Nominal Telemetry Dataset..." />;
+  }
+
+  // Active window object
+  const activeWindow: TelemetryWindow | undefined = sampleData?.windows.find(
+    (w) => w.window_index === selectedWindowIndex
+  ) || sampleData?.windows[0];
+
+  const meta = activeWindow?.meta || {};
+  const orbitPhase = meta.orbit_phase !== undefined ? meta.orbit_phase : null;
+  const inEclipse = orbitPhase !== null && orbitPhase >= 0.65;
+  const initSoc = meta.initial_soc !== undefined ? (meta.initial_soc * 100).toFixed(1) : null;
+  const initTemp = meta.initial_temp_payload !== undefined ? meta.initial_temp_payload.toFixed(1) : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header & Prominent Disclaimer Banner */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-sky-950/60 border border-sky-800/60 text-sky-400 shrink-0">
+              <LineChart className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Telemetry & Anomaly Lab
+              </h1>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Explore offline telemetry windows, inspect subsystem behavior, and investigate anomaly scores generated by the research model.
+              </p>
+            </div>
+          </div>
+
+          {/* Persistent Prominent Disclaimer */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/40 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>OFFLINE NOMINAL DATASET — NOT LIVE SPACECRAFT TELEMETRY</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Dataset Summary & Active Window Metadata Header */}
+        {sampleData && (
+          <div className="bg-[#0b1120] border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-md">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-xs font-mono bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                <Database className="w-4 h-4 text-cyan-400" />
+                <span className="text-slate-400">Dataset:</span>
+                <span className="text-slate-200 font-bold">
+                  {sampleData.dataset_total_windows.toLocaleString()} Windows (600s each)
+                </span>
+              </div>
+
+              {activeWindow && (
+                <div className="flex items-center gap-2 text-xs font-mono bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400">Selected Window:</span>
+                  <span className="text-cyan-300 font-bold">#{activeWindow.window_index}</span>
+                </div>
+              )}
+
+              {orbitPhase !== null && (
+                <div className="flex items-center gap-1.5 text-xs font-mono bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400">Orbit Phase (ϕ):</span>
+                  <span className="text-slate-200 font-bold">{orbitPhase.toFixed(2)}</span>
+                  {inEclipse ? (
+                    <span title="Eclipse Arc" className="flex items-center gap-1 text-[11px] text-slate-400 ml-1">
+                      <Moon className="w-3.5 h-3.5 text-slate-400" />
+                      <span>(Eclipse)</span>
+                    </span>
+                  ) : (
+                    <span title="Sunlit Arc" className="flex items-center gap-1 text-[11px] text-amber-400 ml-1">
+                      <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      <span>(Sunlit)</span>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {initSoc !== null && (
+                <div className="flex items-center gap-1 text-xs font-mono bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400">Onset SoC:</span>
+                  <span className="text-slate-200 font-semibold">{initSoc}%</span>
+                </div>
+              )}
+
+              {initTemp !== null && (
+                <div className="flex items-center gap-1 text-xs font-mono bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span className="text-slate-400">Onset Payload T:</span>
+                  <span className="text-slate-200 font-semibold">{initTemp} °C</span>
+                </div>
+              )}
+            </div>
+
+            <div className="text-xs font-mono text-slate-500 hidden xl:block">
+              {sampleData.disclaimer}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Error Alert Display */}
+      {error && (
+        <ErrorAlert
+          title="Telemetry Retrieval Error"
+          message={error}
+          onRetry={() => fetchTelemetry({ window_index: selectedWindowIndex, n_windows: 1 })}
+        />
+      )}
+
+      {/* Main Section 1: Window Explorer & Navigation Toolbar */}
+      {sampleData && (
+        <WindowExplorerBar
+          totalWindows={sampleData.dataset_total_windows}
+          currentIndex={selectedWindowIndex}
+          nWindows={sampleData.windows.length}
+          seed={activeSeed}
+          isLoading={isFetching}
+          onLoadWindow={handleLoadWindow}
+          onLoadSeeded={handleLoadSeeded}
+        />
+      )}
+
+      {/* Main Section 2: Anomaly Score Assessment */}
+      {activeWindow && sampleData && (
+        <AnomalyScoreCard
+          window={activeWindow}
+          totalWindows={sampleData.dataset_total_windows}
+        />
+      )}
+
+      {/* Main Section 3: Multichannel Telemetry Profile Chart */}
+      {activeWindow && sampleData && (
+        <MultiChannelChart
+          points={activeWindow.points}
+          channels={sampleData.channels}
+          windowIndex={activeWindow.window_index}
+        />
+      )}
+
+      {/* Main Section 4: Batch Window Comparison View (if n_windows > 1) */}
+      {sampleData && sampleData.windows.length > 1 && (
+        <WindowComparisonView
+          windows={sampleData.windows}
+          activeWindowIndex={selectedWindowIndex}
+          onSelectWindow={(idx) => setSelectedWindowIndex(idx)}
+          isSeeded={isSeeded}
+          seed={activeSeed}
+        />
+      )}
+
+      {/* Main Section 5: Channel Catalog & Feature Engineering Reference */}
+      {sampleData && (
+        <ChannelCatalogPanel channels={sampleData.channels} />
+      )}
+    </div>
+  );
+};
