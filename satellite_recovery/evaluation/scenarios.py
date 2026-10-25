@@ -113,45 +113,53 @@ def _s(name, fault, desc, orbit_phase=0.65) -> Scenario:
     return sc
 
 
+
+# ---------------------------------------------------------------------------
+# Canonical hard scenarios — each requires depth 5–8 to solve
+# ---------------------------------------------------------------------------
+
 SINGLE_THERMAL = _s(
     name='single_thermal',
     fault='thermal_runaway',
-    desc='Isolated thermal runaway on payload node (eclipse onset)',
-    orbit_phase=0.62,   # early eclipse: payload heats without solar assist
+    desc='Thermal runaway (62 °C) in sunlit arc — payload_off + 6 wait steps to cool',
+    orbit_phase=0.10,   # full sun: SoC not at risk; pure thermal problem; depth ~7
 )
 
 SINGLE_POWER = _s(
     name='single_power',
     fault='battery_degradation',
-    desc='Battery degradation with low initial SoC (sunlit — charging possible)',
-    orbit_phase=0.20,   # sunlit arc: solar charging available to recover SoC
+    desc='Battery degradation SoC=0.20 late sunlit — shed loads + 6 wait steps',
+    orbit_phase=0.50,   # late sunlit: declining solar; ~6 wait steps to charge SoC to 0.35
 )
 
 SINGLE_LOAD = _s(
     name='single_load',
     fault='high_bus_load',
-    desc='Unexpected high bus load — sunlit arc (load shed + solar recovery)',
-    orbit_phase=0.25,   # sunlit arc: solar charging available once load shed
+    desc='Rogue 30 W consumer + SoC=0.20 mid-sunlit — safe_mode + 4-5 wait steps',
+    orbit_phase=0.45,   # mid-late sunlit: enough solar to charge after shedding; depth ~5
 )
 
 CASCADE = _s(
     name='cascade',
     fault='cascade_thermal_power',
-    desc='Simultaneous thermal runaway + high bus load (hard cascade)',
-    orbit_phase=0.30,   # sunlit arc: solar available, but thermal + power both stressed
+    desc='Thermal (62 °C) + SoC=0.22 simultaneously — interleaved thermal+power management',
+    orbit_phase=0.10,   # full sun: both constraints active; depth ~8; hardest scenario
 )
 
-# Sunlit variants (easier: solar power available)
+# ---------------------------------------------------------------------------
+# Sunlit comparison variants — easier; useful for ablation studies
+# ---------------------------------------------------------------------------
+
 SINGLE_THERMAL_SUN = _s(
     name='single_thermal_sun',
     fault='thermal_runaway',
-    desc='Thermal runaway — sunlit arc (solar available)',
-    orbit_phase=0.10,
+    desc='Thermal runaway (62 °C) peak sunlit — same fault, maximum solar flux',
+    orbit_phase=0.05,   # peak sun: maximum solar flux; SoC stays very high; depth ~7
 )
 
 SINGLE_POWER_SUN = _s(
     name='single_power_sun',
     fault='battery_degradation',
-    desc='Battery degradation — sunlit arc',
-    orbit_phase=0.15,
+    desc='Battery degradation SoC=0.20 early sunlit — fewer wait steps than phase=0.50',
+    orbit_phase=0.25,   # early-mid sunlit: more solar → SoC recovers faster (depth ~4)
 )

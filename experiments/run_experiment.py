@@ -61,16 +61,41 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 ALGORITHM_MAP = {
-    'astar':              DynamicAStar,
-    'idastar':            IDAstar,
-    'rbfs':               RBFS,
-    'hill_climbing':      HillClimbing,
+    'astar':               DynamicAStar,
+    'idastar':             IDAstar,
+    'rbfs':                RBFS,
+    'hill_climbing':       HillClimbing,
     'simulated_annealing': SimulatedAnnealing,
 }
+
+# Algorithms included in the default --sweep.
+# IDA* and RBFS are memory-bounded and require 100k+ nodes at depth 6
+# (branching factor 9). They are excluded from the default sweep for
+# tractability; use --include-memory-bounded to add them.
+DEFAULT_SWEEP_ALGORITHMS = ['astar', 'hill_climbing', 'simulated_annealing']
+MEMORY_BOUNDED_ALGORITHMS = ['idastar', 'rbfs']
+
+# Deterministic algorithms: seed parameter has no effect on results.
+# Running multiple seeds produces identical rows — wasteful.
+# Only stochastic algorithms benefit from multiple seeds.
+DETERMINISTIC_ALGORITHMS = {'astar', 'idastar', 'rbfs'}
+STOCHASTIC_ALGORITHMS    = {'hill_climbing', 'simulated_annealing'}
 
 HEURISTIC_VARIANTS = ('H0', 'H1', 'H2', 'H3', 'H4')
 
 LAMBDA_SWEEP = (0.0, 10.0, 25.0, 50.0, 100.0, 200.0)
+
+
+# Per-algorithm budget multipliers: IDA* and RBFS re-expand nodes exponentially
+# at depth 6+ with branching factor 9; they need far more budget than A*.
+# These multipliers are applied on top of --budget-nodes in the sweep.
+ALGO_BUDGET_MULT: dict[str, float] = {
+    'astar':               1.0,
+    'idastar':            10.0,   # 200k nodes when base=20k
+    'rbfs':               10.0,   # same
+    'hill_climbing':       1.0,
+    'simulated_annealing': 1.0,
+}
 
 
 def build_algorithm(
@@ -82,9 +107,10 @@ def build_algorithm(
     w:            float,
 ):
     cls = ALGORITHM_MAP[name]
+    effective_budget = int(budget_nodes * ALGO_BUDGET_MULT.get(name, 1.0))
     if name in ('astar', 'idastar', 'rbfs'):
         kwargs: dict = dict(
-            budget_nodes=budget_nodes,
+            budget_nodes=effective_budget,
             max_depth=max_depth,
             lambda_risk=lambda_risk,
             variant=variant,
@@ -93,7 +119,7 @@ def build_algorithm(
     else:
         # Local search: uses budget_evals and lambda_risk; no variant/w
         kwargs = dict(
-            budget_evals=budget_nodes,   # map budget_nodes → budget_evals
+            budget_evals=effective_budget,
             max_depth=max_depth,
             lambda_risk=lambda_risk,
         )
@@ -135,16 +161,18 @@ def run_single(
         w=w,
     )
 
+    seed_label = seed if algo_name in STOCHASTIC_ALGORITHMS else 0
     log.info(
         f"[{scenario_name}] {algo_name}/{variant} "
-        f"λ={lambda_risk} seed={seed} ..."
+        f"λ={lambda_risk} seed={seed_label} ..."
     )
-    result = algo.search(problem, scorer, seed=seed)
+    result = algo.search(problem, scorer, seed=seed_label)
 
-    metrics = compute_metrics(result, problem, scenario=scenario_name, seed=seed)
+    metrics = compute_metrics(result, problem, scenario=scenario_name, seed=seed_label)
+    cost_str = f'{metrics.solution_cost:.1f}' if metrics.success else 'NaN'
     log.info(
         f"  → success={bool(metrics.success)} "
-        f"cost={metrics.solution_cost:.1f} "
+        f"cost={cost_str} "
         f"nodes={metrics.nodes_expanded} "
         f"wall={metrics.wall_time_s:.2f}s"
     )
@@ -158,42 +186,57 @@ def run_single(
 def run_sweep(args, scorer: Optional[BaseScorer], csv_logger: CSVLogger, params) -> None:
     """Run all combinations specified by sweep flags."""
     scenarios  = list(SCENARIOS.keys()) if args.sweep else [args.scenario]
-    algorithms = list(ALGORITHM_MAP.keys()) if args.sweep else [args.algorithm]
+    # Default sweep excludes memory-bounded (IDA*/RBFS) for tractability
+    if args.sweep:
+        algorithms = list(DEFAULT_SWEEP_ALGORITHMS)
+        if getattr(args, 'include_memory_bounded', False):
+            algorithms += MEMORY_BOUNDED_ALGORITHMS
+    else:
+        algorithms = [args.algorithm]
     variants   = list(HEURISTIC_VARIANTS) if args.sweep else [args.variant]
     lambdas    = list(LAMBDA_SWEEP) if args.sweep_lambda else [args.lambda_risk]
     seeds      = list(range(args.seeds))
 
-    total = len(scenarios) * len(algorithms) * len(variants) * len(lambdas) * len(seeds)
-    log.info(f"Sweep: {total} combinations")
-    done = 0
+    # Deterministic algorithms produce identical results for every seed.
+    # Only run them once (seed=0) to avoid duplicate rows.
+    det_seeds = [0]
 
+    combos = []
     for scenario in scenarios:
         for algo in algorithms:
             for variant in variants:
-                # Skip non-applicable variant/algo combos
-                if algo in ('hill_climbing', 'simulated_annealing') and variant != 'H2':
+                # Skip variant loop for local search — variant is irrelevant
+                if algo in STOCHASTIC_ALGORITHMS and variant != 'H2':
                     continue
                 for lam in lambdas:
-                    for seed in seeds:
-                        try:
-                            rec = run_single(
-                                scenario_name=scenario,
-                                algo_name=algo,
-                                variant=variant,
-                                lambda_risk=lam,
-                                seed=seed,
-                                scorer=scorer,
-                                budget_nodes=args.budget_nodes,
-                                max_depth=args.max_depth,
-                                w=args.w,
-                                params=params,
-                            )
-                            csv_logger.log(rec.to_dict())
-                        except Exception as e:
-                            log.error(f"FAILED {scenario}/{algo}/{variant}/λ={lam}/s={seed}: {e}")
-                        done += 1
-                        if done % 20 == 0:
-                            log.info(f"Progress: {done}/{total}")
+                    seed_list = seeds if algo in STOCHASTIC_ALGORITHMS else det_seeds
+                    for seed in seed_list:
+                        combos.append((scenario, algo, variant, lam, seed))
+
+    total = len(combos)
+    log.info(f"Sweep: {total} runs ({args.seeds} seeds for stochastic, 1 for deterministic)")
+    done = 0
+
+    for scenario, algo, variant, lam, seed in combos:
+        try:
+            rec = run_single(
+                scenario_name=scenario,
+                algo_name=algo,
+                variant=variant,
+                lambda_risk=lam,
+                seed=seed,
+                scorer=scorer,
+                budget_nodes=args.budget_nodes,
+                max_depth=args.max_depth,
+                w=args.w,
+                params=params,
+            )
+            csv_logger.log(rec.to_dict())
+        except Exception as e:
+            log.error(f"FAILED {scenario}/{algo}/{variant}/λ={lam}/s={seed}: {e}")
+        done += 1
+        if done % 20 == 0:
+            log.info(f"Progress: {done}/{total}")
 
     log.info(f"Sweep complete: {done} runs written.")
 
@@ -253,10 +296,14 @@ def parse_args() -> argparse.Namespace:
     # Output
     p.add_argument('--output',      type=Path,
                    default=Path('experiments/results/results.csv'))
+    p.add_argument('--overwrite',   action='store_true',
+                   help='Delete existing output CSV before writing (avoids duplicate rows).')
 
     # Sweep modes
     p.add_argument('--sweep',       action='store_true',
-                   help='Run ALL scenarios × algorithms × variants × seeds.')
+                   help='Run ALL scenarios × A* variants × local search × seeds.')
+    p.add_argument('--include-memory-bounded', action='store_true', dest='include_memory_bounded',
+                   help='Also include IDA* and RBFS in the sweep (slow — adds hours).')
     p.add_argument('--sweep-lambda', action='store_true',
                    help='Also sweep over the λ grid.')
 
@@ -288,6 +335,12 @@ def main() -> None:
     setup_logging(logging.DEBUG if args.debug else logging.INFO)
 
     scorer = load_scorer(args.scorer)
+
+    # Issue 1 fix: --overwrite clears the CSV so old runs don't contaminate
+    if args.overwrite and args.output.exists():
+        args.output.unlink()
+        log.info(f"Cleared existing results file: {args.output}")
+
     csv_logger = CSVLogger(args.output)
     params = SpacecraftParams()
 

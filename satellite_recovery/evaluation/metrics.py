@@ -55,9 +55,9 @@ class MetricsRecord:
 
     # -- Solution quality ---------------------------------------------------
     success:            int   = 0     # 1 / 0 for easy averaging
-    time_to_stable_s:   float = float('inf')
-    safety_margin:      float = float('-inf')
-    solution_cost:      float = float('inf')
+    time_to_stable_s:   float = float('nan')   # nan = no solution found
+    safety_margin:      float = float('nan')   # nan = no solution found
+    solution_cost:      float = float('nan')   # nan = no solution found (not 0!)
     path_length:        int   = 0
 
     # -- Resource usage -----------------------------------------------------
@@ -101,7 +101,6 @@ def compute_metrics(
         lambda_risk       = result.lambda_risk,
         seed              = seed,
         success           = int(result.success),
-        solution_cost     = result.solution_g,
         path_length       = result.solution_depth,
         nodes_expanded    = result.stats.nodes_expanded,
         nodes_generated   = result.stats.nodes_generated,
@@ -110,20 +109,39 @@ def compute_metrics(
         wall_time_s       = result.stats.wall_time_s,
     )
 
+    # Only record solution cost for successful runs — NaN for failures
+    if result.success:
+        rec.solution_cost = result.solution_g
+
     if result.path is None:
         return rec
 
     path_states: list[SpacecraftState] = [s for s, _ in result.path]
 
-    # ---- Time to first stable state -------------------------------------
+    # ---- Time to first stable state (check path, then simulate forward) ----
+    stable_found = False
     for state in path_states:
         if state.in_nominal_band(params):
             rec.time_to_stable_s = float(state.time - t0)
+            stable_found = True
             break
+
+    # If goal is at the terminal path state but it just barely crossed the
+    # nominal boundary, simulate up to 60 more physics steps forward to
+    # measure the time when the satellite actually settles in band.
+    if not stable_found and path_states:
+        sim   = problem.simulator
+        state = path_states[-1]
+        for _ in range(60):
+            state = sim.step(state)
+            if state.in_nominal_band(params):
+                rec.time_to_stable_s = float(state.time - t0)
+                stable_found = True
+                break
 
     # ---- Minimum safety margin over the whole path ----------------------
     margins = [s.safety_margin(params) for s in path_states]
-    rec.safety_margin = float(min(margins)) if margins else float('-inf')
+    rec.safety_margin = float(min(margins)) if margins else float('nan')
 
     return rec
 

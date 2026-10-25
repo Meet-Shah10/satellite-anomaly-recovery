@@ -221,16 +221,14 @@ class HillClimbing:
 
     def __init__(
         self,
-        budget_evals: int   = 5_000,
+        budget_evals: int   = 20_000,
         max_depth:    int   = 20,
         n_neighbours: int   = 20,
-        n_restarts:   int   = 10,
         lambda_risk:  float = 50.0,
     ) -> None:
         self.budget_evals = budget_evals
         self.max_depth    = max_depth
         self.n_neighbours = n_neighbours
-        self.n_restarts   = n_restarts
         self.lambda_risk  = lambda_risk
 
     # ------------------------------------------------------------------
@@ -247,20 +245,23 @@ class HillClimbing:
 
         best_cmds: list[str]   = []
         best_J:    float       = _BIG_PENALTY
-        best_traj: list[SpacecraftState] = [problem.initial_state]
         best_goal: bool        = False
 
-        for restart in range(self.n_restarts):
+        # Unlimited restarts until budget is exhausted.
+        # Each restart: draw a fresh random candidate then climb until stuck.
+        while evals < self.budget_evals:
             current_cmds = _random_candidate(self.max_depth, rng)
             current_J    = _evaluate(
                 problem.initial_state, current_cmds, problem,
                 scorer, self.lambda_risk, stats,
             )
             evals += 1
+            if evals >= self.budget_evals:
+                break
 
             improved = True
             while improved and evals < self.budget_evals:
-                improved  = False
+                improved   = False
                 neighbours = _neighbours(current_cmds, self.n_neighbours,
                                          self.max_depth, rng)
                 for nbr in neighbours:
@@ -274,11 +275,14 @@ class HillClimbing:
                         current_cmds = nbr
                         current_J    = J
                         improved     = True
-                        break   # steepest-ascent: take first improvement
+                        break   # take first improvement then re-expand
 
             if current_J < best_J:
                 best_J    = current_J
                 best_cmds = current_cmds
+                best_goal = (best_J < _BIG_PENALTY * 0.5)   # quick success check
+                if best_goal and best_J < 1.0:
+                    break   # found a very good solution, stop early
 
         # Reconstruct final trajectory
         traj, g, goal, violated, applied = _simulate_sequence(
@@ -322,11 +326,11 @@ class SimulatedAnnealing:
 
     def __init__(
         self,
-        budget_evals: int   = 5_000,
+        budget_evals: int   = 20_000,
         max_depth:    int   = 20,
-        T_init:       float = 200.0,
+        T_init:       float = 500.0,
         T_final:      float = 1.0,
-        alpha_cool:   float = 0.995,
+        alpha_cool:   float = 0.997,
         lambda_risk:  float = 50.0,
     ) -> None:
         self.budget_evals = budget_evals

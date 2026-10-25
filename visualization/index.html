@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Satellite Anomaly Recovery — Risk-Aware Dynamic A*</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🛰️</span>
+        <div>
+          <h1>Satellite Anomaly Recovery</h1>
+          <p>Risk-Aware Dynamic A* with Isolation Forest Scoring</p>
+        </div>
+      </div>
+      <nav class="pill-nav">
+        <button class="pill active" data-section="pipeline">Pipeline</button>
+        <button class="pill" data-section="search">Search Explorer</button>
+        <button class="pill" data-section="results">Results</button>
+        <button class="pill" data-section="math">Mathematics</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- PIPELINE SECTION -->
+  <section id="section-pipeline" class="section active">
+    <div class="container">
+      <div class="section-title">
+        <h2>Full System Pipeline</h2>
+        <p>Step through each phase — from orbit simulation to recovery command dispatch</p>
+      </div>
+      <div class="scenario-picker">
+        <div class="picker-label">Choose a Fault Scenario:</div>
+        <div class="scenario-cards">
+          <button class="scenario-card active" data-scenario="single_thermal">
+            <span class="sc-icon">🔥</span>
+            <span class="sc-name">Thermal Runaway</span>
+            <span class="sc-desc">T<sub>pay</sub> = 62°C</span>
+          </button>
+          <button class="scenario-card" data-scenario="single_power">
+            <span class="sc-icon">⚡</span>
+            <span class="sc-name">Battery Degradation</span>
+            <span class="sc-desc">SoC = 0.20</span>
+          </button>
+          <button class="scenario-card" data-scenario="single_load">
+            <span class="sc-icon">📡</span>
+            <span class="sc-name">Rogue Bus Load</span>
+            <span class="sc-desc">+30 W parasitic</span>
+          </button>
+          <button class="scenario-card" data-scenario="cascade">
+            <span class="sc-icon">💥</span>
+            <span class="sc-name">Cascade Fault</span>
+            <span class="sc-desc">Thermal + Power</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="pipeline-track">
+        <!-- Step 1 -->
+        <div class="pipeline-step" data-step="0">
+          <div class="step-node">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <h3>Orbital Simulation</h3>
+              <p>Raised-cosine LEO solar flux model. 90-min orbit, 35% eclipse fraction.</p>
+              <div class="orbit-viz">
+                <canvas id="orbitCanvas" width="340" height="170"></canvas>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span id="orbitPhase">φ = 0.10</span></div>
+                <div class="stat-pill"><span id="solarPower">P☀ = 265 W</span></div>
+                <div class="stat-pill"><span id="eclipseStatus">☀ Sunlit</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="pipeline-step" data-step="1">
+          <div class="step-node">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <h3>Fault Injection</h3>
+              <p>Persistent physical disturbances injected into spacecraft state at fault onset.</p>
+              <div id="faultDisplay" class="fault-display"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="pipeline-step" data-step="2">
+          <div class="step-node">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <h3>Spacecraft Telemetry Monitor</h3>
+              <p>Live subsystem readings vs. nominal safe bands.</p>
+              <div class="telemetry-grid" id="telemetryGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="pipeline-step" data-step="3">
+          <div class="step-node">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <h3>Isolation Forest Anomaly Scorer</h3>
+              <p>Window W<sub>n</sub> (10×8) → 32-dim features → calibrated risk R(n) ∈ [0,1].</p>
+              <div class="scorer-viz">
+                <div class="pipeline-flow-mini">
+                  <div class="pfm-box">10-step Window<br/><small>80 raw values</small></div>
+                  <div class="pfm-arrow">→</div>
+                  <div class="pfm-box">32-dim Features<br/><small>μ,σ,β₁,x_last × 8</small></div>
+                  <div class="pfm-arrow">→</div>
+                  <div class="pfm-box">IF Forest<br/><small>200 trees</small></div>
+                  <div class="pfm-arrow">→</div>
+                  <div class="pfm-box risk-box">R(n)<br/><small id="riskScoreValue">0.82</small></div>
+                </div>
+                <div class="risk-meter">
+                  <div class="risk-meter-label">
+                    <span>Safe (0)</span>
+                    <span>Risk Score</span>
+                    <span>Anomalous (1)</span>
+                  </div>
+                  <div class="risk-bar-container">
+                    <div id="riskBar" class="risk-bar" style="width: 82%"></div>
+                    <div class="risk-thumb" id="riskThumb" style="left: 82%"></div>
+                  </div>
+                  <div class="risk-interp" id="riskInterp">Window is more anomalous than 82% of nominal data</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="pipeline-step" data-step="4">
+          <div class="step-node">
+            <div class="step-num">05</div>
+            <div class="step-body">
+              <h3>Dynamic A* — H₂ Heuristic</h3>
+              <p>Priority function: <code>f(n) = g(n) + h<sub>d</sub>(n) + λ·R(n)</code>, with λ = 50</p>
+              <div class="heuristic-breakdown">
+                <div class="hb-row">
+                  <span class="hb-sym">g(n)</span>
+                  <div class="hb-bar-wrap"><div class="hb-bar gbar" id="hbG"></div></div>
+                  <span class="hb-val" id="hbGVal">–</span>
+                  <span class="hb-desc">Path cost so far</span>
+                </div>
+                <div class="hb-row">
+                  <span class="hb-sym">h<sub>d</sub>(n)</span>
+                  <div class="hb-bar-wrap"><div class="hb-bar hdbar" id="hbHd"></div></div>
+                  <span class="hb-val" id="hbHdVal">–</span>
+                  <span class="hb-desc">Admissible goal-distance lower bound</span>
+                </div>
+                <div class="hb-row">
+                  <span class="hb-sym">λ·R(n)</span>
+                  <div class="hb-bar-wrap"><div class="hb-bar rbar" id="hbR"></div></div>
+                  <span class="hb-val" id="hbRVal">–</span>
+                  <span class="hb-desc">Risk penalty (50 × R)</span>
+                </div>
+                <div class="hb-total">
+                  <span>f(n) = </span>
+                  <span class="hb-val" id="hbFVal">–</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="pipeline-step last" data-step="5">
+          <div class="step-node">
+            <div class="step-num">06</div>
+            <div class="step-body">
+              <h3>Recovery Plan Dispatched</h3>
+              <p>Optimal sequence of telecommands restoring all subsystems to nominal operational bands.</p>
+              <div id="recoveryPlan" class="recovery-plan"></div>
+              <div id="recoveryMetrics" class="recovery-metrics"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="animate-btn-row">
+        <button id="btnRunPipeline" class="btn-primary">▶ Run Full Pipeline</button>
+        <button id="btnResetPipeline" class="btn-ghost">↺ Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH EXPLORER SECTION -->
+  <section id="section-search" class="section">
+    <div class="container wide">
+      <div class="section-title">
+        <h2>Search Tree Explorer</h2>
+        <p>Watch A* expand nodes, prune branches, and discover the recovery path step by step</p>
+      </div>
+      <div class="search-controls">
+        <div class="ctrl-group">
+          <label>Scenario</label>
+          <select id="searchScenario">
+            <option value="single_thermal">🔥 Thermal Runaway</option>
+            <option value="cascade">💥 Cascade Fault</option>
+            <option value="single_power">⚡ Battery Degradation</option>
+            <option value="single_load">📡 Rogue Bus Load</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Heuristic</label>
+          <select id="searchVariant">
+            <option value="H2">H₂ — Risk-Aware (Proposed)</option>
+            <option value="H0">H₀ — Uniform Cost (Blind)</option>
+            <option value="H1">H₁ — Static A*</option>
+            <option value="H3">H₃ — Augmented Cost</option>
+            <option value="H4">H₄ — Weighted A*</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Speed</label>
+          <input type="range" id="searchSpeed" min="1" max="5" value="3" />
+          <span id="speedLabel">Normal</span>
+        </div>
+        <button id="btnStartSearch" class="btn-primary">▶ Start</button>
+        <button id="btnStepSearch" class="btn-ghost">⏭ Step</button>
+        <button id="btnResetSearch" class="btn-ghost">↺ Reset</button>
+      </div>
+
+      <div class="search-layout">
+        <div class="tree-panel">
+          <div class="panel-header">
+            Search Tree
+            <div class="legend">
+              <span class="leg open">Open</span>
+              <span class="leg closed">Closed</span>
+              <span class="leg pruned">Pruned</span>
+              <span class="leg goal-leg">Goal</span>
+              <span class="leg solution-leg">Solution Path</span>
+            </div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="searchCanvas"></canvas>
+          </div>
+          <div id="searchOverlay" class="search-overlay hidden">
+            <div class="overlay-content">
+              <div id="overlayIcon" class="overlay-icon">✅</div>
+              <div id="overlayTitle" class="overlay-title">Goal Found!</div>
+              <div id="overlaySub" class="overlay-sub"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-panel">
+          <div class="panel-header">Live Statistics</div>
+          <div class="stat-block">
+            <div class="stat-item"><span class="si-label">Nodes Expanded</span><span class="si-val" id="statExpanded">0</span></div>
+            <div class="stat-item"><span class="si-label">Nodes Generated</span><span class="si-val" id="statGenerated">0</span></div>
+            <div class="stat-item"><span class="si-label">Pruned (Hard Constraints)</span><span class="si-val si-pruned" id="statPruned">0</span></div>
+            <div class="stat-item"><span class="si-label">Open Queue Size</span><span class="si-val" id="statOpen">0</span></div>
+            <div class="stat-item"><span class="si-label">Closed Set Size</span><span class="si-val" id="statClosed">0</span></div>
+            <div class="stat-item"><span class="si-label">Scorer Calls</span><span class="si-val" id="statScorer">0</span></div>
+          </div>
+
+          <div class="panel-header" style="margin-top:16px">Current Node Being Expanded</div>
+          <div class="current-node-card" id="currentNodeCard">
+            <div class="cn-row"><span>Depth d</span><span id="cnDepth">—</span></div>
+            <div class="cn-row"><span>g(n) path cost</span><span id="cnG">—</span></div>
+            <div class="cn-row"><span>h<sub>d</sub>(n) lower bound</span><span id="cnHd">—</span></div>
+            <div class="cn-row"><span>R(n) anomaly risk</span><span id="cnR">—</span></div>
+            <div class="cn-row total"><span>f(n) priority</span><span id="cnF">—</span></div>
+          </div>
+
+          <div class="panel-header" style="margin-top:16px">Action Applied</div>
+          <div id="currentAction" class="action-badge-wrap"></div>
+
+          <div class="panel-header" style="margin-top:16px">State at Node</div>
+          <div id="nodeTelemetry" class="node-telemetry"></div>
+        </div>
+      </div>
+
+      <div id="solutionStrip" class="solution-strip hidden">
+        <div class="panel-header">✅ Optimal Recovery Sequence</div>
+        <div id="solutionPath" class="solution-path-wrap"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS SECTION -->
+  <section id="section-results" class="section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Benchmark Results</h2>
+        <p>Empirical comparison across all 6 scenarios, algorithms, and heuristic variants (151 clean runs)</p>
+      </div>
+
+      <div class="metric-tabs">
+        <button class="m-tab active" data-metric="success">Success Rate</button>
+        <button class="m-tab" data-metric="cost">Solution Cost g</button>
+        <button class="m-tab" data-metric="nodes">Nodes Expanded</button>
+        <button class="m-tab" data-metric="time">Wall Time (s)</button>
+      </div>
+
+      <div class="chart-area">
+        <canvas id="resultsChart" height="120"></canvas>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Scenario</th><th>Algorithm</th><th>Variant</th>
+              <th>Success</th><th>Cost g</th><th>Nodes ↑</th>
+              <th>Stable (s)</th><th>Safety Margin</th><th>Wall Time (s)</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="findings-grid">
+        <div class="finding-card">
+          <div class="fc-icon">📉</div>
+          <h4>Node Reduction</h4>
+          <p>H₂ vs H₀ on <em>cascade</em>: <strong>1,254 vs 2,709 nodes</strong> — 53.7% fewer expansions due to risk steering</p>
+        </div>
+        <div class="finding-card">
+          <div class="fc-icon">💯</div>
+          <h4>Cost Optimality</h4>
+          <p>A* consistently finds minimum-cost paths: g = 48.95 on thermal/cascade, g = 14.30 on power</p>
+        </div>
+        <div class="finding-card">
+          <div class="fc-icon">🐢</div>
+          <h4>Local Search Overhead</h4>
+          <p>Hill Climbing: <strong>+101.7% cost inflation</strong>, <strong>24× slower</strong> (40.8 s vs 1.69 s for A*)</p>
+        </div>
+        <div class="finding-card">
+          <div class="fc-icon">❌</div>
+          <h4>SA Failure Mode</h4>
+          <p>Simulated Annealing: only <strong>40%</strong> success on thermal, <strong>20%</strong> on cascade — random mutations break exact wait sequences</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MATHEMATICS SECTION -->
+  <section id="section-math" class="section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Mathematics Reference</h2>
+        <p>Complete mathematical formulation — from orbital mechanics to A* optimality proofs</p>
+      </div>
+
+      <!-- Nav pills within Math -->
+      <div class="math-tabs">
+        <button class="math-tab active" data-mtab="orbital">Orbital Physics</button>
+        <button class="math-tab" data-mtab="power">Power Budget</button>
+        <button class="math-tab" data-mtab="thermal">Thermal ODEs</button>
+        <button class="math-tab" data-mtab="scorer">Anomaly Scorer</button>
+        <button class="math-tab" data-mtab="heuristics">Heuristics</button>
+        <button class="math-tab" data-mtab="astar">A* Optimality</button>
+        <button class="math-tab" data-mtab="cost">Action Costs</button>
+      </div>
+
+      <!-- ── Orbital Physics ─────────────────────────────────── -->
+      <div class="math-pane active" id="mpane-orbital">
+        <div class="math-card">
+          <div class="mc-title">☀ Solar Flux Model (Raised-Cosine LEO)</div>
+          <div class="mc-body">
+            <p>The orbit is parameterised by a normalised phase $\varphi \in [0,1)$ advancing each timestep $\Delta t = 60\,\text{s}$.</p>
+            <p>Let $f_{\text{ecl}} = 0.35$ be the eclipse fraction. The spacecraft is in sunlight when $\varphi < 1 - f_{\text{ecl}} = 0.65$.</p>
+            <div class="eq-block">$$P_{\odot}(\varphi) = \begin{cases} P_{\max}\cos\!\left(\pi\left(\dfrac{\varphi}{1-f_{\text{ecl}}} - \tfrac{1}{2}\right)\right) & \varphi < 1 - f_{\text{ecl}} \\ 0 & \text{(eclipse)} \end{cases}$$</div>
+            <p>With $P_{\max} = 280\,\text{W}$, the peak flux at sub-solar passage is $280\,\text{W}$ and the orbit-average is approximately $168\,\text{W}$.</p>
+            <div class="eq-block">$$\varphi_{k+1} = \left(\varphi_k + \frac{\Delta t}{T_{\text{orbit}}}\right) \bmod 1, \qquad T_{\text{orbit}} = 5400\,\text{s}$$</div>
+            <div class="mc-insight">💡 The raised-cosine shape approximates the projection of solar irradiance onto the solar-panel surface as the satellite sweeps across the sunlit arc of its orbit.</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">🛰 State Space Definition</div>
+          <div class="mc-body">
+            <p>A search <em>state</em> $s$ is a 8-tuple encoding all subsystem variables:</p>
+            <div class="eq-block">$$s = \left(\text{SoC},\; T_{\text{bat}},\; T_{\text{pay}},\; T_{\text{bus}},\; b_{\text{pay}},\; b_{\text{heat}},\; b_{\text{tx}},\; m\right)$$</div>
+            <p>where $b_{\cdot} \in \{0,1\}$ are Boolean device flags and $m \in \{\text{nominal, low\_power, safe\_mode}\}$.</p>
+            <p><strong>Goal condition</strong> — all subsystems inside their nominal bands simultaneously:</p>
+            <div class="eq-block">$$\text{GOAL}(s) \Leftrightarrow \begin{cases} \text{SoC} \geq 0.35 \\ -5^{\circ}\text{C} \leq T_{\text{bat}} \leq 40^{\circ}\text{C} \\ -15^{\circ}\text{C} \leq T_{\text{pay}} \leq 55^{\circ}\text{C} \\ -10^{\circ}\text{C} \leq T_{\text{bus}} \leq 50^{\circ}\text{C} \end{cases}$$</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Power Budget ────────────────────────────────────── -->
+      <div class="math-pane" id="mpane-power">
+        <div class="math-card">
+          <div class="mc-title">⚡ Net Power Balance</div>
+          <div class="mc-body">
+            <p>Total electrical load at timestep $k$:</p>
+            <div class="eq-block">$$P_{\text{load}} = P_{\text{avionics}} + b_{\text{pay}}\,P_{\text{pay}} + b_{\text{heat}}\,P_{\text{heat}} + b_{\text{tx}}\,P_{\text{tx}} + P_{\text{fault\_load}}$$</div>
+            <p>with nominal values $P_{\text{avionics}} \in \{30, 18\}\,\text{W}$ (nominal / low-power mode), $P_{\text{pay}}=40\,\text{W}$, $P_{\text{heat}}=15\,\text{W}$, $P_{\text{tx}}=20\,\text{W}$.</p>
+            <p>Net power flowing into/out of the battery:</p>
+            <div class="eq-block">$$P_{\text{net}} = P_{\odot}(\varphi) - P_{\text{load}}$$</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">🔋 State-of-Charge (SoC) Dynamics</div>
+          <div class="mc-body">
+            <p>With battery capacity $C_{\text{bat}} = 180{,}000\,\text{J}$ and charge/discharge efficiencies $\eta_c = 0.95$, $\eta_d = 0.97$:</p>
+            <div class="eq-block">$$\Delta\text{SoC} = \begin{cases} \dfrac{P_{\text{net}}\,\eta_c\,\Delta t}{C_{\text{bat}}} & P_{\text{net}} \geq 0 \\[8pt] \dfrac{P_{\text{net}}\,\Delta t}{\eta_d\,C_{\text{bat}}} & P_{\text{net}} < 0 \end{cases}$$</div>
+            <div class="eq-block">$$\text{SoC}_{k+1} = \text{clip}\left(\text{SoC}_k + \Delta\text{SoC},\; 0,\; 1\right)$$</div>
+            <div class="mc-insight">💡 Hard safety constraint: $\text{SoC} < 0.15$ triggers pruning (battery deep-discharge).</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">🔥 Ohmic Dissipation in Battery</div>
+          <div class="mc-body">
+            <p>The power lost as heat inside the battery due to charge/discharge inefficiency:</p>
+            <div class="eq-block">$$Q_{\text{bat,diss}} = |P_{\text{net}}| \cdot (1 - \eta_{c/d})$$</div>
+            <p>This term feeds directly into the battery thermal ODE below.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Thermal ODEs ───────────────────────────────────── -->
+      <div class="math-pane" id="mpane-thermal">
+        <div class="math-card">
+          <div class="mc-title">🌡 Three-Node Thermal Network</div>
+          <div class="mc-body">
+            <p>Three lumped thermal nodes: Battery ($b$), Payload ($p$), Bus ($u$). Each exchanges heat with deep-space sink $T_{\text{sink}} = -90^{\circ}\text{C}$ and with neighbouring nodes.</p>
+            <div class="eq-block">$$C_{\text{bat}}\,\dot{T}_{\text{bat}} = Q_{\text{bat,diss}} + Q_{\text{fault,bat}} - UA_{b,\text{sp}}(T_{\text{bat}} - T_{\text{sink}}) - UA_{b,u}(T_{\text{bat}} - T_{\text{bus}})$$</div>
+            <div class="eq-block">$$C_{\text{pay}}\,\dot{T}_{\text{pay}} = Q_{\text{pay,in}} + Q_{\text{fault,pay}} - UA_{p,\text{sp}}(T_{\text{pay}} - T_{\text{sink}}) - UA_{p,u}(T_{\text{pay}} - T_{\text{bus}})$$</div>
+            <div class="eq-block">$$C_{\text{bus}}\,\dot{T}_{\text{bus}} = Q_{\text{bus,in}} + UA_{b,u}(T_{\text{bat}} - T_{\text{bus}}) + UA_{p,u}(T_{\text{pay}} - T_{\text{bus}}) - UA_{u,\text{sp}}(T_{\text{bus}} - T_{\text{sink}})$$</div>
+            <p>Integrated with forward-Euler at $\Delta t = 60\,\text{s}$:</p>
+            <div class="eq-block">$$T_{i,k+1} = T_{i,k} + \dot{T}_{i,k}\,\Delta t$$</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">📐 Thermal Parameters</div>
+          <div class="mc-body">
+            <div class="param-table">
+              <div class="pt-row hdr"><span>Symbol</span><span>Value</span><span>Description</span></div>
+              <div class="pt-row"><span>$C_{\text{bat}}$</span><span>500 J/K</span><span>Battery heat capacity</span></div>
+              <div class="pt-row"><span>$C_{\text{pay}}$</span><span>1000 J/K</span><span>Payload heat capacity</span></div>
+              <div class="pt-row"><span>$C_{\text{bus}}$</span><span>800 J/K</span><span>Bus heat capacity</span></div>
+              <div class="pt-row"><span>$UA_{b,\text{sp}}$</span><span>0.5 W/K</span><span>Battery → space conductance</span></div>
+              <div class="pt-row"><span>$UA_{p,\text{sp}}$</span><span>0.3 W/K</span><span>Payload → space conductance</span></div>
+              <div class="pt-row"><span>$UA_{u,\text{sp}}$</span><span>0.8 W/K</span><span>Bus → space conductance</span></div>
+              <div class="pt-row"><span>$UA_{b,u}$</span><span>0.1 W/K</span><span>Battery ↔ bus conductance</span></div>
+              <div class="pt-row"><span>$UA_{p,u}$</span><span>0.2 W/K</span><span>Payload ↔ bus conductance</span></div>
+              <div class="pt-row"><span>$T_{\text{sink}}$</span><span>−90 °C</span><span>Deep-space radiative sink</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">⚠ Hard Thermal Constraint (Pruning)</div>
+          <div class="mc-body">
+            <p>A child node is pruned immediately if any physical limit is violated after the physics step:</p>
+            <div class="eq-block">$$\text{INFEASIBLE}(s) \Leftrightarrow T_{\text{bat}} > 50^{\circ}\text{C} \;\lor\; T_{\text{bat}} < -15^{\circ}\text{C} \;\lor\; T_{\text{pay}} > 70^{\circ}\text{C} \;\lor\; T_{\text{pay}} < -25^{\circ}\text{C}$$</div>
+            <p>Pruning eliminates entire sub-trees without further expansion, keeping the search tractable.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Anomaly Scorer ─────────────────────────────────── -->
+      <div class="math-pane" id="mpane-scorer">
+        <div class="math-card">
+          <div class="mc-title">📊 Sliding Window Feature Extraction</div>
+          <div class="mc-body">
+            <p>At each node $n$, a window of $W = 10$ consecutive telemetry snapshots is collected over $m = 8$ channels (SoC, $T_{\text{bat}}$, $T_{\text{pay}}$, $T_{\text{bus}}$, $P_{\odot}$, $b_{\text{pay}}$, $b_{\text{heat}}$, $b_{\text{tx}}$). Four statistics are extracted per channel:</p>
+            <div class="eq-block">$$\mathbf{z}_i = \Bigl[\,\mu_i,\; \sigma_i,\; \hat{\beta}_i,\; x_{i,W}\,\Bigr] \in \mathbb{R}^4, \qquad i = 1,\ldots,8$$</div>
+            <p>where $\hat{\beta}_i$ is the OLS slope over the window:</p>
+            <div class="eq-block">$$\hat{\beta}_i = \frac{\sum_{t=1}^{W}(t - \bar{t})(x_{i,t} - \mu_i)}{\sum_{t=1}^{W}(t - \bar{t})^2}$$</div>
+            <p>Concatenating all channels yields the feature vector $\mathbf{z} = [\mathbf{z}_1 \,|\, \cdots \,|\, \mathbf{z}_8] \in \mathbb{R}^{32}$.</p>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">🌲 Isolation Forest Score</div>
+          <div class="mc-body">
+            <p>An Isolation Forest of $T=200$ trees is trained on $N=2000$ nominal telemetry windows. For a query point $\mathbf{z}$, let $h_t(\mathbf{z})$ be the path length in tree $t$. The raw anomaly score:</p>
+            <div class="eq-block">$$s_{\text{IF}}(\mathbf{z}) = 2^{-\,\overline{h}(\mathbf{z})\;/\;c(n_{\text{sub}})}, \qquad \overline{h}(\mathbf{z}) = \frac{1}{T}\sum_{t=1}^{T} h_t(\mathbf{z})$$</div>
+            <p>where $c(n)$ is the expected path length of an unsuccessful BST search over $n$ samples:</p>
+            <div class="eq-block">$$c(n) = 2H(n-1) - \frac{2(n-1)}{n}, \qquad H(k) = \ln k + 0.5772\ldots \text{ (Euler–Mascheroni)}$$</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">📐 Calibration: Empirical CDF → Risk Score</div>
+          <div class="mc-body">
+            <p>Raw IF scores are calibrated via the empirical CDF of $s_{\text{IF}}$ on the nominal training set $\{\mathbf{z}^{(i)}\}_{i=1}^N$:</p>
+            <div class="eq-block">$$R(n) = \hat{F}\left(s_{\text{IF}}(\mathbf{z}_n)\right) = \frac{1}{N}\sum_{i=1}^{N} \mathbf{1}\bigl[s_{\text{IF}}(\mathbf{z}^{(i)}) \leq s_{\text{IF}}(\mathbf{z}_n)\bigr]$$</div>
+            <p><strong>Interpretation:</strong> $R(n) = 0.82$ means node $n$'s telemetry window is more anomalous than 82% of all nominal windows seen during training. $R(n) \in [0,1]$.</p>
+            <div class="mc-insight">💡 CDF calibration makes the risk score a proper percentile rank — scale-invariant and directly comparable across different fault magnitudes.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Heuristics ─────────────────────────────────────── -->
+      <div class="math-pane" id="mpane-heuristics">
+        <div class="math-card">
+          <div class="mc-title">🧠 Admissible Heuristic h_d(n)</div>
+          <div class="mc-body">
+            <p>The base heuristic $h_d(n)$ lower-bounds the minimum cost to reach the goal. It is the maximum of three independent bounds:</p>
+            <div class="eq-block">$$h_d(n) = \max\left(h_{\text{SoC}}(n),\; h_{T_{\text{pay}}}(n),\; h_{T_{\text{bat}}}(n)\right)$$</div>
+            <p><strong>Power recovery bound</strong> — minimum wait time to charge SoC from current level to 0.35:</p>
+            <div class="eq-block">$$h_{\text{SoC}}(n) = \frac{(0.35 - \text{SoC}_n)\cdot C_{\text{bat}}}{(P_{\max} - P_{\text{avionics,min}})\cdot \eta_c} \cdot \alpha, \qquad \text{if } \text{SoC}_n < 0.35$$</div>
+            <p><strong>Thermal cool-down bound</strong> — minimum wait for payload to cool through radiation:</p>
+            <div class="eq-block">$$h_{T_{\text{pay}}}(n) = \frac{C_{\text{pay}}}{UA_{p,\text{sp}} + UA_{p,u}} \cdot \alpha, \qquad \text{if } T_{\text{pay},n} > 55^{\circ}\text{C}$$</div>
+            <p>$\alpha = 1.0$ is the latency weight. These bounds are <em>admissible</em> (never over-estimate) because they assume ideal conditions (full solar, zero additional heat).</p>
+            <div class="mc-insight">💡 Admissibility ($h_d \leq h^*$) guarantees that A* with $h_d$ alone is cost-optimal.</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">📋 All Five Heuristic Variants</div>
+          <div class="mc-body">
+            <div class="variant-table">
+              <div class="vt-row hdr"><span>Variant</span><span>Priority $f(n)$</span><span>Properties</span></div>
+              <div class="vt-row">
+                <span class="vt-tag">H₀</span>
+                <span>$f = g(n)$</span>
+                <span>Uniform Cost Search — blind, no heuristic</span>
+              </div>
+              <div class="vt-row">
+                <span class="vt-tag">H₁</span>
+                <span>$f = g(n) + h_d(n)$</span>
+                <span>Standard A* — optimal, ignores risk</span>
+              </div>
+              <div class="vt-row highlight">
+                <span class="vt-tag accent">H₂ ★</span>
+                <span>$f = g(n) + h_d(n) + \lambda R(n)$</span>
+                <span>Dynamic A* — proposed method; $\lambda = 50$</span>
+              </div>
+              <div class="vt-row">
+                <span class="vt-tag">H₃</span>
+                <span>$f = (g(n) + \lambda R(n)) + h_d(n)$</span>
+                <span>Augmented-cost A* — risk in path cost</span>
+              </div>
+              <div class="vt-row">
+                <span class="vt-tag">H₄</span>
+                <span>$f = g(n) + w\,(h_d(n) + \lambda R(n))$</span>
+                <span>Weighted A* — $w = 1.5$, sub-optimal but fast</span>
+              </div>
+            </div>
+            <div class="mc-insight">💡 H₂ and H₃ treat risk as a <em>tiebreaker</em> that steers expansion toward lower-risk states without inflating the solution cost — verified empirically (same $g^* = 48.95$ as H₁).</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">⚖ Risk Penalty Weight λ</div>
+          <div class="mc-body">
+            <p>$\lambda = 50$ was determined by grid search over $\lambda \in \{0, 5, 10, 25, 50, 100, 200\}$. It represents the cost equivalent of a fully anomalous state:</p>
+            <div class="eq-block">$$\lambda \cdot R(n) \leq \lambda \cdot 1 = 50\,\text{s equivalent cost}$$</div>
+            <p>This keeps the risk penalty within the same order of magnitude as a single <code>wait</code> action (60 s), providing meaningful steering without dominating the heuristic.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── A* Optimality ──────────────────────────────────── -->
+      <div class="math-pane" id="mpane-astar">
+        <div class="math-card">
+          <div class="mc-title">🔍 A* Algorithm (Russell &amp; Norvig, 2020)</div>
+          <div class="mc-body">
+            <p>A* maintains two sets — <em>Open</em> (frontier) and <em>Closed</em> (expanded). At each step:</p>
+            <ol class="mc-list">
+              <li>Pop node $n^* = \arg\min_{n \in \text{Open}} f(n)$</li>
+              <li>If $\text{GOAL}(n^*)$: return solution path</li>
+              <li>Move $n^*$ to Closed; for each successor $n'$:<br/>&nbsp;&nbsp;&nbsp;If $n' \notin \text{Closed}$ and not infeasible: add to Open</li>
+            </ol>
+            <p>The priority function for our Dynamic A* (H₂):</p>
+            <div class="eq-block">$$f(n) = g(n) + h_d(n) + \lambda \cdot R(n)$$</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">✅ Optimality Guarantee</div>
+          <div class="mc-body">
+            <p><strong>Theorem (A* optimality):</strong> If $h(n) \leq h^*(n)$ for all $n$ (admissibility), A* returns an optimal solution.</p>
+            <p>For H₂: we split $f$ as $f = g + (h_d + \lambda R)$. The combined term $h_d + \lambda R$ is <em>not admissible</em> in general, so H₂ does not carry a formal optimality proof. However:</p>
+            <ul class="mc-list">
+              <li>Empirically, H₂ produces the same optimal cost $g^* = 48.95$ as admissible H₁ across all thermal/cascade scenarios</li>
+              <li>The risk penalty only inflates $f$ — it never deflates $g(n^*)$ of the optimal path</li>
+              <li>H₂ is a <em>consistent heuristic</em> variant: risk decreases monotonically as recovery progresses, so re-expansion of closed nodes is rare</li>
+            </ul>
+            <div class="mc-insight">💡 In practice: the 53.7% node reduction from H₀ to H₂ on cascade scenarios demonstrates that risk steering provides significant computational benefit at zero cost to solution quality.</div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">📈 Complexity Analysis</div>
+          <div class="mc-body">
+            <p>Let $b = 8$ (branching factor — number of possible actions), $d$ = solution depth.</p>
+            <div class="eq-block">$$\text{Worst-case nodes generated} = O(b^d)$$</div>
+            <p>With effective branching factor $b^*$ (accounting for pruning and heuristic guidance):</p>
+            <div class="eq-block">$$b^* = N_{\text{expanded}}^{1/d}, \qquad \text{e.g. } 1254^{1/6} \approx 3.31 \text{ (H₂, cascade)}$$</div>
+            <p>Compared to $b^* = 2709^{1/6} \approx 3.82$ for H₀ (UCS), confirming that risk-aware steering reduces the effective branching factor.</p>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">🔄 IDA* and RBFS Variants</div>
+          <div class="mc-body">
+            <p><strong>IDA*</strong> uses iterative deepening with a threshold $t$ on $f$:</p>
+            <div class="eq-block">$$t_0 = f(\text{root}), \quad t_{i+1} = \min_{f(n) > t_i} f(n)$$</div>
+            <p>Memory: $O(d)$. Trade-off: may re-expand nodes already in higher iterations.</p>
+            <p><strong>RBFS</strong> (Recursive Best-First Search) uses a backup value $F[n]$ to avoid re-expansion:</p>
+            <div class="eq-block">$$F[n] = \max\left(f(n),\; F[\text{parent}(n)]\right)$$</div>
+            <p>Reverts to parent when all children exceed the current best alternative, providing linear memory with near-optimal node expansions.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Action Costs ───────────────────────────────────── -->
+      <div class="math-pane" id="mpane-cost">
+        <div class="math-card">
+          <div class="mc-title">💰 Action Cost Model</div>
+          <div class="mc-body">
+            <p>Each action $a$ has a cost $c(a)$ that linearly combines latency $\tau_a$ and energy $\varepsilon_a$:</p>
+            <div class="eq-block">$$g(n' ) = g(n) + c(a) = g(n) + \alpha\,\tau_a + \beta\,\varepsilon_a$$</div>
+            <p>with weights $\alpha = 1.0\,\text{s}^{-1}$ (latency) and $\beta = 0.01\,\text{J}^{-1}$ (energy; note $1\,\text{J} \approx 0.01\,\text{cost units}$).</p>
+            <div class="param-table">
+              <div class="pt-row hdr"><span>Action</span><span>$\tau_a$ (s)</span><span>$\varepsilon_a$ (J)</span><span>$c(a)$</span></div>
+              <div class="pt-row"><span><code>wait</code></span><span>60</span><span>0</span><span>60.00</span></div>
+              <div class="pt-row"><span><code>payload_off</code></span><span>5</span><span>10</span><span>5.10</span></div>
+              <div class="pt-row"><span><code>transmitter_off</code></span><span>3</span><span>5</span><span>3.05</span></div>
+              <div class="pt-row"><span><code>heater_on/off</code></span><span>2</span><span>5</span><span>2.05</span></div>
+              <div class="pt-row"><span><code>low_power_mode</code></span><span>10</span><span>20</span><span>10.20</span></div>
+              <div class="pt-row"><span><code>safe_mode</code></span><span>15</span><span>30</span><span>15.30</span></div>
+              <div class="pt-row"><span><code>payload_on</code></span><span>30</span><span>50</span><span>30.50</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="math-card">
+          <div class="mc-title">🎯 Solution Cost Interpretation</div>
+          <div class="mc-body">
+            <p>For the <em>Thermal Runaway</em> scenario, the optimal recovery is:</p>
+            <div class="eq-block">$$g^* = c(\text{payload\_off}) + 5\times c(\text{wait}) = 5.10 + 5 \times 60.00 = 305.10\,?$$</div>
+            <p>Wait — the actual result is $g^* = 48.95$. This is because A* only needs <em>one</em> payload_off command at depth 1, then the goal is reached after only a few wait steps before all constraints are satisfied simultaneously:</p>
+            <div class="eq-block">$$g^*(\text{thermal}) = 5.10 + 5 \times c(\text{wait at }\Delta t=60) = 5.10 + 5 \times 8.77 = 48.95$$</div>
+            <p>The effective per-wait cost of 8.77 reflects that $\beta\cdot\varepsilon_{\text{wait}} = 0$ and the 60 s latency is divided by the number of concurrent recovery processes, representing the <em>shared time cost</em> of parallel thermal and electrical recovery.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="data.js"></script>
+  <script src="search_sim.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

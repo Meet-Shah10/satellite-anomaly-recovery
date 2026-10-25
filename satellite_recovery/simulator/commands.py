@@ -103,7 +103,7 @@ def _register(
 
 
 # ---------------------------------------------------------------------------
-# The eight recovery commands
+# The nine recovery commands
 # ---------------------------------------------------------------------------
 
 # 1. PAYLOAD_OFF
@@ -171,7 +171,7 @@ RESUME_NOMINAL = _register(
 )
 
 # 7. TRANSMITTER_OFF
-#    Shed 20 W transmitter load (Tier-1 load shed).
+#    Shed 15 W transmitter load (Tier-1 load shed).
 TRANSMITTER_OFF = _register(
     name='transmitter_off',
     pre=lambda s: s.transmitter_on,
@@ -196,6 +196,20 @@ SAFE_MODE = _register(
     energy=30.0,
 )
 
+# 9. WAIT
+#    No-op command: advance one physics time step (dt=60 s) without changing
+#    any switch states.  Essential for scenarios requiring the satellite to
+#    hold a configuration while physics evolves (e.g., waiting for temperature
+#    to cool or battery to charge after load shedding).
+#    Always legal; cost is time only (no energy, just 60 s latency).
+WAIT = _register(
+    name='wait',
+    pre=lambda s: True,
+    eff=lambda s: {},        # no state flag changes
+    latency=60.0,            # one full physics step
+    energy=0.0,
+)
+
 
 # ---------------------------------------------------------------------------
 # Public helpers
@@ -217,3 +231,4 @@ def apply_command(state: SpacecraftState, name: str) -> SpacecraftState:
 def command_cost(name: str, params: SpacecraftParams) -> float:
     """Scalar path cost: α · τ(a) + β · ε(a)."""
     return COMMANDS[name].cost(params)
+
