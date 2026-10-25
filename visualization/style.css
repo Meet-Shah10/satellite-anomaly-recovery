@@ -1212,8 +1212,24 @@ body {
   background: rgba(255,255,255,0.015);
   border: 1px solid var(--border-white);
   border-radius: var(--r);
-  padding: 24px;
+  padding: 20px 24px 16px;
   margin-bottom: 24px;
+  position: relative;
+  height: 330px;
+  max-height: 330px;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#resultsChart {
+  display: block;
+  width: 100% !important;
+  height: 280px !important;
+  max-height: 280px !important;
+  box-sizing: border-box;
 }
 
 .table-wrapper {

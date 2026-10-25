@@ -511,6 +511,29 @@ document.querySelectorAll('.m-tab').forEach(btn => {
   });
 });
 
+window.updateChart = function(metric) {
+  if (metric) {
+    activeMetric = metric;
+    document.querySelectorAll('.m-tab').forEach(t => {
+      if (t.dataset.metric === metric) t.classList.add('active');
+      else t.classList.remove('active');
+    });
+  }
+  renderChart();
+};
+window.renderChart = renderChart;
+
+let chartResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(chartResizeTimer);
+  chartResizeTimer = setTimeout(() => {
+    const sec = document.getElementById('section-results');
+    if (sec && sec.classList.contains('active')) {
+      renderChart();
+    }
+  }, 120);
+});
+
 function initResults() {
   if (!resultsInited) {
     buildResultsTable();
@@ -620,15 +643,22 @@ function renderChart() {
 }
 
 function drawBarChart(ctx, canvas, { labels, datasets, yLabel, logScale }) {
-  const W = canvas.offsetWidth || 800;
-  const H = (canvas.offsetHeight || 240);
-  canvas.width  = W * (window.devicePixelRatio || 1);
-  canvas.height = H * (window.devicePixelRatio || 1);
-  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  const parent = canvas.parentElement;
+  const W = (parent && parent.clientWidth > 48) ? (parent.clientWidth - 48) : 800;
+  const H = 280; // Fixed logical height - prevents canvas ballooning
 
-  const pad = { top: 20, right: 20, bottom: 60, left: 70 };
-  const cW = W - pad.left - pad.right;
-  const cH = H - pad.top - pad.bottom;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+
+  const pad = { top: 24, right: 24, bottom: 60, left: 70 };
+  const cW = Math.max(10, W - pad.left - pad.right);
+  const cH = Math.max(10, H - pad.top - pad.bottom);
 
   // Max value
   const allVals = datasets.flatMap(d => d.data).filter(v => v > 0);
@@ -637,7 +667,7 @@ function drawBarChart(ctx, canvas, { labels, datasets, yLabel, logScale }) {
   const nGroups = labels.length;
   const nBars   = datasets.length;
   const groupW  = cW / nGroups;
-  const barW    = Math.min(groupW / (nBars + 1), 40);
+  const barW    = Math.min(groupW / (nBars + 1), 36);
 
   function toY(v) {
     if (!v || v <= 0) return cH;
@@ -688,16 +718,24 @@ function drawBarChart(ctx, canvas, { labels, datasets, yLabel, logScale }) {
       ctx.shadowColor = ds.borderColor + '66';
       ctx.shadowBlur = 8;
       ctx.fillStyle = ds.backgroundColor;
-      ctx.beginPath();
-      ctx.roundRect(x, y, barW - 2, bH, [3, 3, 0, 0]);
-      ctx.fill();
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW - 2, bH, [3, 3, 0, 0]);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x, y, barW - 2, bH);
+      }
       ctx.shadowBlur = 0;
 
       ctx.strokeStyle = ds.borderColor;
       ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(x, y, barW - 2, bH, [3, 3, 0, 0]);
-      ctx.stroke();
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW - 2, bH, [3, 3, 0, 0]);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(x, y, barW - 2, bH);
+      }
 
       // Value label
       if (val > 0) {
@@ -720,11 +758,16 @@ function drawBarChart(ctx, canvas, { labels, datasets, yLabel, logScale }) {
   });
 
   // Legend
+  const legendItemW = Math.min(185, cW / datasets.length);
   datasets.forEach((ds, i) => {
-    const lx = pad.left + i * 160;
-    const ly = H - 18;
+    const lx = pad.left + i * legendItemW;
+    const ly = H - 12;
     ctx.fillStyle = ds.borderColor;
-    ctx.beginPath(); ctx.roundRect(lx, ly - 8, 12, 10, 2); ctx.fill();
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(lx, ly - 8, 12, 10, 2); ctx.fill();
+    } else {
+      ctx.fillRect(lx, ly - 8, 12, 10);
+    }
     ctx.fillStyle = 'rgba(160,180,210,0.9)';
     ctx.font = '10px Inter'; ctx.textAlign = 'left';
     ctx.fillText(ds.label, lx + 16, ly);
