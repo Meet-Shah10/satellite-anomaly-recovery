@@ -12,9 +12,11 @@ document.querySelectorAll('.pill').forEach(btn => {
     document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('section-' + sec).classList.add('active');
+    const sEl = document.getElementById('section-' + sec);
+    if (sEl) sEl.classList.add('active');
     if (sec === 'results') initResults();
     if (sec === 'search')  resetSearch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 });
 
@@ -101,8 +103,10 @@ function startOrbitAnim() {
 
     // Solar flux indicator
     const flux = orbitSolarFlux(orbitPhaseAnim % 1);
-    document.getElementById('solarPower').textContent = `P☀ = ${Math.round(flux)} W`;
-    document.getElementById('eclipseStatus').textContent = inEclipse ? '🌙 Eclipse' : '☀ Sunlit';
+    const sunIco = typeof ICO !== 'undefined' ? ICO.sun : '';
+    const moonIco = typeof ICO !== 'undefined' ? ICO.moon : '';
+    document.getElementById('solarPower').innerHTML = `${sunIco} P<sub>sol</sub>: ${Math.round(flux)} W`;
+    document.getElementById('eclipseStatus').innerHTML = inEclipse ? `${moonIco} Eclipse` : `${sunIco} Sunlit`;
     document.getElementById('orbitPhase').textContent = `φ = ${(orbitPhaseAnim % 1).toFixed(2)}`;
 
     orbitPhaseAnim += 0.002;
@@ -159,8 +163,11 @@ function buildTelemetry(scenarioKey) {
     const val = st[ch.key];
     const cls = classify(ch.key, val);
     const bar = Math.max(0, Math.min(100, pct(ch.key, val)));
-    const label = NOMINAL[ch.key];
-    const status = cls === 'tc-bad' ? '⚠ OUT OF BAND' : (cls === 'tc-warn' ? '⚡ Near limit' : '✓ Nominal');
+    const status = cls === 'tc-bad' 
+      ? '<span style="color:var(--danger);font-weight:600;">OUT OF BAND</span>' 
+      : (cls === 'tc-warn' 
+          ? '<span style="color:var(--warn);font-weight:600;">NEAR LIMIT</span>' 
+          : '<span style="color:var(--ok);font-weight:600;">NOMINAL</span>');
     return `
       <div class="telem-card ${cls}">
         <div class="tc-label">${ch.label}</div>
@@ -214,7 +221,8 @@ function showRecoveryPlan(scenarioKey) {
   sc.recovery.forEach((step, i) => {
     const div = document.createElement('div');
     div.className = 'rp-cmd';
-    div.innerHTML = `<span class="cmd-icon">${step.icon}</span> ${step.action} <small style="color:#7a90b0;margin-left:4px">(+${step.cost})</small>`;
+    const icoSvg = (typeof ICO !== 'undefined' && ICO[step.icon]) ? ICO.html(step.icon) : '';
+    div.innerHTML = `<span class="cmd-icon">${icoSvg}</span> ${step.action} <small style="color:#52526e;margin-left:4px">(+${step.cost})</small>`;
     el.appendChild(div);
     if (i < sc.recovery.length - 1) {
       const arrow = document.createElement('span');
@@ -230,7 +238,7 @@ function showRecoveryPlan(scenarioKey) {
 
   const m = sc.metrics;
   mEl.innerHTML = `
-    <div class="rm-stat"><div class="rm-label">Success</div><div class="rm-value">✅ Yes</div></div>
+    <div class="rm-stat"><div class="rm-label">Success</div><div class="rm-value" style="display:flex;align-items:center;gap:6px;color:var(--success);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> REACHED</div></div>
     <div class="rm-stat"><div class="rm-label">Path Cost g</div><div class="rm-value">${m.cost.toFixed(2)}</div></div>
     <div class="rm-stat"><div class="rm-label">Nodes Expanded</div><div class="rm-value">${m.nodes_expanded.toLocaleString()}</div></div>
     <div class="rm-stat"><div class="rm-label">Time to Stable</div><div class="rm-value">${m.time_to_stable} s</div></div>
@@ -243,8 +251,11 @@ function showRecoveryPlan(scenarioKey) {
 const STEP_DELAYS = [600, 500, 600, 700, 700, 800];
 
 async function runPipelineStep(step) {
-  const nodes = document.querySelectorAll('.step-node');
-  if (nodes[step]) nodes[step].classList.add('lit');
+  // Light up step number badge
+  const numEl  = document.getElementById('snum-'  + step);
+  const bodyEl = document.getElementById('sbody-' + step);
+  if (numEl)  numEl.classList.add('lit');
+  if (bodyEl) bodyEl.classList.add('lit');
 
   if (step === 0) startOrbitAnim();
   if (step === 1) buildFaultDisplay(activeScenario);
@@ -275,7 +286,13 @@ function resetPipeline() {
   pipelineRunning = false;
   pipelineStep = -1;
   document.getElementById('btnRunPipeline').disabled = false;
-  document.querySelectorAll('.step-node').forEach(n => n.classList.remove('lit'));
+  // Remove lit class from all step num badges and bodies
+  for (let i = 0; i < 6; i++) {
+    const n = document.getElementById('snum-'  + i);
+    const b = document.getElementById('sbody-' + i);
+    if (n) n.classList.remove('lit');
+    if (b) b.classList.remove('lit');
+  }
   document.getElementById('faultDisplay').innerHTML = '';
   document.getElementById('telemetryGrid').innerHTML = '';
   document.getElementById('recoveryPlan').innerHTML = '';
@@ -412,8 +429,9 @@ function updateCurrentNode(node) {
   document.getElementById('cnF').textContent = (node.f || 0).toFixed(1);
 
   const cmd = node.action ? COMMANDS[node.action] : null;
+  const icoSvg = (cmd && typeof ICO !== 'undefined' && ICO[cmd.icon]) ? ICO.html(cmd.icon) : '';
   document.getElementById('currentAction').innerHTML =
-    `<div class="action-badge">${cmd ? `${cmd.icon} ${node.action}` : '(root)'}</div>`;
+    `<div class="action-badge">${cmd ? `${icoSvg} ${node.action}` : '(root)'}</div>`;
 
   const s = node.state;
   const NOMINAL = { soc:[0.35,1.0], temp_battery:[-5,40], temp_payload:[-15,55], temp_bus:[-10,50] };
@@ -427,15 +445,15 @@ function updateCurrentNode(node) {
     <div class="nt-row"><span>T Payload</span><span class="${cls('temp_payload',s.temp_payload)}">${s.temp_payload.toFixed(1)} °C</span></div>
     <div class="nt-row"><span>T Battery</span><span class="${cls('temp_battery',s.temp_battery)}">${s.temp_battery.toFixed(1)} °C</span></div>
     <div class="nt-row"><span>T Bus</span><span class="${cls('temp_bus',s.temp_bus)}">${s.temp_bus.toFixed(1)} °C</span></div>
-    <div class="nt-row"><span>Payload</span><span>${s.payload_on ? '🟢 ON' : '🔴 OFF'}</span></div>
+    <div class="nt-row"><span>Payload</span><span>${s.payload_on ? '<span style="color:var(--ok)">ON</span>' : '<span style="color:var(--danger)">OFF</span>'}</span></div>
     <div class="nt-row"><span>Mode</span><span>${s.mode}</span></div>
-    <div class="nt-row"><span>Transmitter</span><span>${s.transmitter_on ? '🟢 ON' : '🔴 OFF'}</span></div>
+    <div class="nt-row"><span>Transmitter</span><span>${s.transmitter_on ? '<span style="color:var(--ok)">ON</span>' : '<span style="color:var(--danger)">OFF</span>'}</span></div>
   `;
 }
 
 function updatePruneNotice(node) {
   document.getElementById('currentAction').innerHTML =
-    `<div class="action-badge" style="border-color:var(--pruned);color:var(--pruned)">✗ PRUNED — ${node.action} violates hard constraint</div>`;
+    `<div class="action-badge" style="border-color:var(--danger);color:var(--danger);gap:6px;display:inline-flex;align-items:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> PRUNED — ${node.action} violates hard constraint</div>`;
 }
 
 function showGoalOverlay(node, path) {
@@ -467,9 +485,10 @@ function showSolutionStrip(path) {
     div.style.animationDelay = i * 0.1 + 's';
     const cmd = node.action ? COMMANDS[node.action] : null;
     const cost = cmd ? cmd.cost : 0;
+    const icoSvg = (cmd && typeof ICO !== 'undefined' && ICO[cmd.icon]) ? ICO.html(cmd.icon) : '';
     totalG += cost;
     div.innerHTML = `
-      <span class="sp-action">${cmd ? cmd.icon + ' ' + node.action : '🛰 Start'}</span>
+      <span class="sp-action">${icoSvg} ${cmd ? node.action : 'Start'}</span>
       <span class="sp-cost">g = ${totalG.toFixed(1)}</span>
     `;
     container.appendChild(div);
@@ -506,11 +525,19 @@ function buildResultsTable() {
   RESULTS.forEach(r => {
     const algoClass = r.algorithm === 'astar' ? 'row-astar'
       : r.algorithm === 'hill_climbing' ? 'row-hc' : 'row-sa';
-    const successBadge = r.success === 1 ? '<span class="badge-success">✓ 100%</span>'
-      : r.success > 0.5 ? `<span class="badge-partial">⚠ ${(r.success*100).toFixed(0)}%</span>`
-      : `<span class="badge-fail">✗ ${(r.success*100).toFixed(0)}%</span>`;
-    const scLabel = { single_thermal:'Thermal', single_power:'Power', single_load:'Load', cascade:'Cascade',
-      single_thermal_sun:'Thermal☀', single_power_sun:'Power☀' };
+    const successBadge = r.success === 1 
+      ? '<span class="badge-success"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block;vertical-align:middle;margin-right:3px;"><polyline points="20 6 9 17 4 12"/></svg>100%</span>'
+      : r.success > 0.5 
+          ? `<span class="badge-partial">${(r.success*100).toFixed(0)}%</span>`
+          : `<span class="badge-fail"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block;vertical-align:middle;margin-right:3px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>${(r.success*100).toFixed(0)}%</span>`;
+    const scLabel = { 
+      single_thermal: 'Thermal', 
+      single_power: 'Power', 
+      single_load: 'Load', 
+      cascade: 'Cascade',
+      single_thermal_sun: 'Thermal (Sun)', 
+      single_power_sun: 'Power (Sun)' 
+    };
     const algoLabel = { astar:'A*', hill_climbing:'Hill Climb', simulated_annealing:'Sim. Anneal' };
     const wall = r.wall < 1 ? r.wall.toFixed(3) : r.wall.toFixed(2);
     tbody.innerHTML += `
@@ -621,7 +648,7 @@ function drawBarChart(ctx, canvas, { labels, datasets, yLabel, logScale }) {
   ctx.clearRect(0, 0, W, H);
 
   // Background
-  ctx.fillStyle = '#0e1522';
+  ctx.fillStyle = '#03030a';
   ctx.fillRect(0, 0, W, H);
 
   // Grid lines

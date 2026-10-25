@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Satellite Anomaly Recovery — Risk-Aware Dynamic A*</title>
+  <title>SAR // Satellite Anomaly Recovery — Risk-Aware Dynamic A*</title>
+  <meta name="description" content="Risk-Aware Dynamic A* with Isolation Forest scoring for autonomous satellite anomaly recovery. Interactive visualization of the full pipeline." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
@@ -13,130 +15,325 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="site-header">
+
+  <!-- Starfield Canvas -->
+  <canvas id="starfield"></canvas>
+
+  <!-- Atmospheric Glows -->
+  <div class="atmos-glow"></div>
+  <div class="atmos-glow-2"></div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       NAVIGATION
+       ══════════════════════════════════════════════════════════ -->
+  <header class="site-header" id="site-header">
     <div class="header-inner">
       <div class="logo">
-        <span class="logo-icon">🛰️</span>
-        <div>
-          <h1>Satellite Anomaly Recovery</h1>
-          <p>Risk-Aware Dynamic A* with Isolation Forest Scoring</p>
-        </div>
+        <span class="logo-wordmark">SAR</span>
+        <div class="logo-divider"></div>
+        <span class="logo-tag">Satellite Anomaly Recovery</span>
       </div>
       <nav class="pill-nav">
-        <button class="pill active" data-section="pipeline">Pipeline</button>
-        <button class="pill" data-section="search">Search Explorer</button>
+        <button class="pill active" data-section="hero">Overview</button>
+        <button class="pill" data-section="pipeline">Pipeline</button>
+        <button class="pill" data-section="search">Search</button>
         <button class="pill" data-section="results">Results</button>
         <button class="pill" data-section="math">Mathematics</button>
       </nav>
     </div>
   </header>
 
-  <!-- PIPELINE SECTION -->
-  <section id="section-pipeline" class="section active">
-    <div class="container">
-      <div class="section-title">
-        <h2>Full System Pipeline</h2>
-        <p>Step through each phase — from orbit simulation to recovery command dispatch</p>
+  <!-- ══════════════════════════════════════════════════════════
+       HERO SECTION
+       ══════════════════════════════════════════════════════════ -->
+  <section id="section-hero" class="section active">
+    <div class="hero-section">
+
+      <!-- Top meta bar (Turion-style) -->
+      <div class="hero-meta-bar">
+        <div class="hero-meta-item">001 &nbsp; AUTONOMOUS RECOVERY</div>
+        <div class="hero-meta-item">AI · SEARCH · SPACECRAFT</div>
+        <div class="hero-meta-item">RISK-AWARE DYNAMIC A* &nbsp; λ = 50</div>
       </div>
+
+      <!-- Diagonal horizon line -->
+      <div class="hero-horizon">
+        <div class="hero-horizon-line"></div>
+      </div>
+
+      <!-- Main Hero Content -->
+      <div class="hero-content">
+
+        <!-- Mission badge -->
+        <div class="mission-badge">AI Mini-Project · Dynamic A* Algorithm</div>
+
+        <!-- Heading -->
+        <h1 class="hero-heading">
+          <span class="hero-heading-line1">Autonomous Satellite</span>
+          <span class="hero-heading-line2">Anomaly Recovery</span>
+        </h1>
+
+        <!-- Typing subtitle -->
+        <p class="hero-subtitle" id="heroTyping">
+          <span id="typing-text"></span><span class="typing-cursor"></span>
+        </p>
+
+        <!-- Stats Row -->
+        <div class="hero-stats">
+          <div class="hero-stat reveal">
+            <span class="hero-stat-num" data-target="5">0</span>
+            <span class="hero-stat-label">Heuristic Variants</span>
+          </div>
+          <div class="hero-stat reveal reveal-delay-1">
+            <span class="hero-stat-num" data-target="8">0</span>
+            <span class="hero-stat-label">Recovery Commands</span>
+          </div>
+          <div class="hero-stat reveal reveal-delay-2">
+            <span class="hero-stat-num" data-target="6">0</span>
+            <span class="hero-stat-label">Fault Scenarios</span>
+          </div>
+          <div class="hero-stat reveal reveal-delay-3">
+            <span class="hero-stat-num" data-suffix="K">100</span>
+            <span class="hero-stat-label">Training Windows</span>
+          </div>
+          <div class="hero-stat reveal reveal-delay-4">
+            <span class="hero-stat-num" data-prefix="~">7s</span>
+            <span class="hero-stat-label">Recovery Time (A*)</span>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="hero-ctas">
+          <button class="btn-primary" onclick="switchSection('pipeline')" style="gap:8px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run Pipeline
+          </button>
+          <button class="btn-ghost" onclick="switchSection('search')" style="gap:8px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search Explorer
+          </button>
+          <button class="btn-ghost" onclick="switchSection('math')" style="gap:8px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+            Mathematics
+          </button>
+        </div>
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="scroll-hint" style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(139,92,246,0.5);text-transform:uppercase;animation:fadeInUp 1s ease 1.5s both;">
+        <span>Scroll</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(139,92,246,0.5)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:bounce-arrow 1.5s ease-in-out infinite;"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+    </div>
+
+    <!-- ── What Is This Section ──────────────────────────────── -->
+    <div style="background:rgba(139,92,246,0.03);border-top:1px solid rgba(139,92,246,0.1);border-bottom:1px solid rgba(139,92,246,0.1);padding:80px 32px;">
+      <div class="container">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;">
+          <div class="reveal">
+            <div class="section-label" style="margin-bottom:20px;">■ &nbsp; The Problem</div>
+            <h2 style="font-size:clamp(24px,3.5vw,42px);font-weight:700;letter-spacing:-0.02em;color:var(--text-primary);margin-bottom:20px;line-height:1.15;">Turning Detection into Recovery</h2>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);line-height:2;margin-bottom:16px;">ML can <em style="color:var(--purple);font-style:normal;">detect</em> anomalies. Converting a detection into a verified, multi-step, safe recovery plan remains <strong style="color:var(--text-primary);">unsolved</strong> — especially for deep-space where ground contact is impossible.</p>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);line-height:2;">This project bridges the gap: <strong style="color:var(--text-primary);">ML evaluates states, classical A* chooses commands.</strong> Best of both worlds.</p>
+          </div>
+          <!-- Architecture mini-diagram -->
+          <div class="reveal reveal-delay-2" style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid rgba(255,255,255,0.06);border-radius:8px;background:rgba(255,255,255,0.02);">
+              <span style="color:var(--purple);display:flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              </span>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple);margin-bottom:2px;">Orbit Simulator</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">Raised-cosine LEO flux · 90-min orbit</div>
+              </div>
+            </div>
+            <div style="text-align:center;color:rgba(139,92,246,0.4);font-size:20px;">↓</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid rgba(255,255,255,0.06);border-radius:8px;background:rgba(255,255,255,0.02);">
+              <span style="color:#f59e0b;display:flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </span>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple);margin-bottom:2px;">Physics Simulator</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">SoC + 3 thermal RC nodes · Euler dt=60s</div>
+              </div>
+            </div>
+            <div style="text-align:center;color:rgba(139,92,246,0.4);font-size:20px;">↓</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid rgba(139,92,246,0.2);border-radius:8px;background:rgba(139,92,246,0.06);">
+              <span style="color:var(--purple);display:flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+              </span>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple);margin-bottom:2px;">Isolation Forest · R(n) ∈ [0,1]</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">200 trees · 32-dim features · CDF calibrated</div>
+              </div>
+            </div>
+            <div style="text-align:center;color:rgba(139,92,246,0.4);font-size:20px;">↓</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid rgba(139,92,246,0.25);border-radius:8px;background:rgba(139,92,246,0.08);">
+              <span style="color:var(--purple);display:flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple);margin-bottom:2px;">Dynamic A* · f = g + h_d + λ·R(n)</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">H₂ heuristic · constraint pruning · anytime</div>
+              </div>
+            </div>
+            <div style="text-align:center;color:var(--ok);font-size:20px;">↓</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid rgba(34,197,94,0.2);border-radius:8px;background:rgba(34,197,94,0.04);">
+              <span style="color:var(--ok);display:flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </span>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ok);margin-bottom:2px;">Recovery Plan Dispatched</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">Ordered telecommand sequence · constraint-safe</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Key Metrics Strip ─────────────────────────────────── -->
+    <div style="padding:64px 32px 0;">
+      <div class="container">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;">
+          <div class="reveal" style="padding:28px;background:rgba(255,255,255,0.015);text-align:center;border-right:1px solid rgba(255,255,255,0.06);">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:var(--ok);line-height:1;">100%</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-top:8px;">A* Success Rate</div>
+          </div>
+          <div class="reveal reveal-delay-1" style="padding:28px;background:rgba(255,255,255,0.015);text-align:center;border-right:1px solid rgba(255,255,255,0.06);">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:var(--purple);line-height:1;">53.7%</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-top:8px;">Node Reduction (H₂ vs H₀)</div>
+          </div>
+          <div class="reveal reveal-delay-2" style="padding:28px;background:rgba(255,255,255,0.015);text-align:center;border-right:1px solid rgba(255,255,255,0.06);">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:var(--sol);line-height:1;">g*=48.95</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-top:8px;">Optimal Recovery Cost</div>
+          </div>
+          <div class="reveal reveal-delay-3" style="padding:28px;background:rgba(255,255,255,0.015);text-align:center;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:var(--danger);line-height:1;">40%</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-top:8px;">SA Success (vs 100% A*)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section><!-- /hero -->
+
+  <!-- ══════════════════════════════════════════════════════════
+       PIPELINE SECTION
+       ══════════════════════════════════════════════════════════ -->
+  <section id="section-pipeline" class="section">
+    <div class="container">
+      <div class="section-title" style="text-align:center;margin-bottom:64px;">
+        <div class="section-label">■ &nbsp; Step-by-Step Walkthrough</div>
+        <h2>Full System Pipeline</h2>
+        <p>Animate each phase — from orbit simulation to recovery command dispatch</p>
+      </div>
+
+      <!-- Scenario Picker -->
       <div class="scenario-picker">
-        <div class="picker-label">Choose a Fault Scenario:</div>
+        <div class="picker-label">Choose a Fault Scenario</div>
         <div class="scenario-cards">
           <button class="scenario-card active" data-scenario="single_thermal">
-            <span class="sc-icon">🔥</span>
+            <span class="sc-num">■ 01</span>
+            <span class="sc-icon" style="color:#ef4444">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            </span>
             <span class="sc-name">Thermal Runaway</span>
             <span class="sc-desc">T<sub>pay</sub> = 62°C</span>
           </button>
           <button class="scenario-card" data-scenario="single_power">
-            <span class="sc-icon">⚡</span>
+            <span class="sc-num">■ 02</span>
+            <span class="sc-icon" style="color:#f59e0b">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
             <span class="sc-name">Battery Degradation</span>
             <span class="sc-desc">SoC = 0.20</span>
           </button>
           <button class="scenario-card" data-scenario="single_load">
-            <span class="sc-icon">📡</span>
+            <span class="sc-num">■ 03</span>
+            <span class="sc-icon" style="color:#8b5cf6">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+            </span>
             <span class="sc-name">Rogue Bus Load</span>
             <span class="sc-desc">+30 W parasitic</span>
           </button>
           <button class="scenario-card" data-scenario="cascade">
-            <span class="sc-icon">💥</span>
+            <span class="sc-num">■ 04</span>
+            <span class="sc-icon" style="color:#ef4444">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
             <span class="sc-name">Cascade Fault</span>
             <span class="sc-desc">Thermal + Power</span>
           </button>
         </div>
       </div>
 
+      <!-- Pipeline Steps -->
       <div class="pipeline-track">
         <!-- Step 1 -->
         <div class="pipeline-step" data-step="0">
-          <div class="step-node">
-            <div class="step-num">01</div>
-            <div class="step-body">
-              <h3>Orbital Simulation</h3>
-              <p>Raised-cosine LEO solar flux model. 90-min orbit, 35% eclipse fraction.</p>
-              <div class="orbit-viz">
-                <canvas id="orbitCanvas" width="340" height="170"></canvas>
-              </div>
-              <div class="stat-row">
-                <div class="stat-pill"><span id="orbitPhase">φ = 0.10</span></div>
-                <div class="stat-pill"><span id="solarPower">P☀ = 265 W</span></div>
-                <div class="stat-pill"><span id="eclipseStatus">☀ Sunlit</span></div>
-              </div>
+          <div class="step-num" id="snum-0">01</div>
+          <div class="step-body" id="sbody-0">
+            <h3>Orbital Simulation</h3>
+            <p>Raised-cosine LEO solar flux model. 90-min orbit, 35% eclipse fraction.</p>
+            <div class="orbit-viz">
+              <canvas id="orbitCanvas" width="340" height="170"></canvas>
+            </div>
+            <div class="stat-row">
+              <div class="stat-pill"><span id="orbitPhase">φ = 0.10</span></div>
+              <div class="stat-pill"><span id="solarPower"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>P<sub>sol</sub>: 265 W</span></div>
+              <div class="stat-pill"><span id="eclipseStatus"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Sunlit</span></div>
             </div>
           </div>
         </div>
 
         <!-- Step 2 -->
         <div class="pipeline-step" data-step="1">
-          <div class="step-node">
-            <div class="step-num">02</div>
-            <div class="step-body">
-              <h3>Fault Injection</h3>
-              <p>Persistent physical disturbances injected into spacecraft state at fault onset.</p>
-              <div id="faultDisplay" class="fault-display"></div>
-            </div>
+          <div class="step-num" id="snum-1">02</div>
+          <div class="step-body" id="sbody-1">
+            <h3>Fault Injection</h3>
+            <p>Persistent physical disturbances injected into spacecraft state at fault onset.</p>
+            <div id="faultDisplay" class="fault-display"></div>
           </div>
         </div>
 
         <!-- Step 3 -->
         <div class="pipeline-step" data-step="2">
-          <div class="step-node">
-            <div class="step-num">03</div>
-            <div class="step-body">
-              <h3>Spacecraft Telemetry Monitor</h3>
-              <p>Live subsystem readings vs. nominal safe bands.</p>
-              <div class="telemetry-grid" id="telemetryGrid"></div>
-            </div>
+          <div class="step-num" id="snum-2">03</div>
+          <div class="step-body" id="sbody-2">
+            <h3>Spacecraft Telemetry Monitor</h3>
+            <p>Live subsystem readings vs. nominal safe bands.</p>
+            <div class="telemetry-grid" id="telemetryGrid"></div>
           </div>
         </div>
 
         <!-- Step 4 -->
         <div class="pipeline-step" data-step="3">
-          <div class="step-node">
-            <div class="step-num">04</div>
-            <div class="step-body">
-              <h3>Isolation Forest Anomaly Scorer</h3>
-              <p>Window W<sub>n</sub> (10×8) → 32-dim features → calibrated risk R(n) ∈ [0,1].</p>
-              <div class="scorer-viz">
-                <div class="pipeline-flow-mini">
-                  <div class="pfm-box">10-step Window<br/><small>80 raw values</small></div>
-                  <div class="pfm-arrow">→</div>
-                  <div class="pfm-box">32-dim Features<br/><small>μ,σ,β₁,x_last × 8</small></div>
-                  <div class="pfm-arrow">→</div>
-                  <div class="pfm-box">IF Forest<br/><small>200 trees</small></div>
-                  <div class="pfm-arrow">→</div>
-                  <div class="pfm-box risk-box">R(n)<br/><small id="riskScoreValue">0.82</small></div>
+          <div class="step-num" id="snum-3">04</div>
+          <div class="step-body" id="sbody-3">
+            <h3>Isolation Forest Anomaly Scorer</h3>
+            <p>Window W<sub>n</sub> (10×8) → 32-dim features → calibrated risk R(n) ∈ [0,1].</p>
+            <div class="scorer-viz">
+              <div class="pipeline-flow-mini">
+                <div class="pfm-box">10-step Window<br/><small>80 raw values</small></div>
+                <div class="pfm-arrow">→</div>
+                <div class="pfm-box">32-dim Features<br/><small>μ,σ,β₁,x_last × 8</small></div>
+                <div class="pfm-arrow">→</div>
+                <div class="pfm-box">IF Forest<br/><small>200 trees</small></div>
+                <div class="pfm-arrow">→</div>
+                <div class="pfm-box risk-box">R(n)<br/><small id="riskScoreValue">0.82</small></div>
+              </div>
+              <div class="risk-meter">
+                <div class="risk-meter-label">
+                  <span>Safe (0)</span>
+                  <span>Risk Score</span>
+                  <span>Anomalous (1)</span>
                 </div>
-                <div class="risk-meter">
-                  <div class="risk-meter-label">
-                    <span>Safe (0)</span>
-                    <span>Risk Score</span>
-                    <span>Anomalous (1)</span>
-                  </div>
-                  <div class="risk-bar-container">
-                    <div id="riskBar" class="risk-bar" style="width: 82%"></div>
-                    <div class="risk-thumb" id="riskThumb" style="left: 82%"></div>
-                  </div>
-                  <div class="risk-interp" id="riskInterp">Window is more anomalous than 82% of nominal data</div>
+                <div class="risk-bar-container">
+                  <div id="riskBar" class="risk-bar" style="width: 82%"></div>
+                  <div class="risk-thumb" id="riskThumb" style="left: 82%"></div>
                 </div>
+                <div class="risk-interp" id="riskInterp">Window is more anomalous than 82% of nominal data</div>
               </div>
             </div>
           </div>
@@ -144,34 +341,32 @@
 
         <!-- Step 5 -->
         <div class="pipeline-step" data-step="4">
-          <div class="step-node">
-            <div class="step-num">05</div>
-            <div class="step-body">
-              <h3>Dynamic A* — H₂ Heuristic</h3>
-              <p>Priority function: <code>f(n) = g(n) + h<sub>d</sub>(n) + λ·R(n)</code>, with λ = 50</p>
-              <div class="heuristic-breakdown">
-                <div class="hb-row">
-                  <span class="hb-sym">g(n)</span>
-                  <div class="hb-bar-wrap"><div class="hb-bar gbar" id="hbG"></div></div>
-                  <span class="hb-val" id="hbGVal">–</span>
-                  <span class="hb-desc">Path cost so far</span>
-                </div>
-                <div class="hb-row">
-                  <span class="hb-sym">h<sub>d</sub>(n)</span>
-                  <div class="hb-bar-wrap"><div class="hb-bar hdbar" id="hbHd"></div></div>
-                  <span class="hb-val" id="hbHdVal">–</span>
-                  <span class="hb-desc">Admissible goal-distance lower bound</span>
-                </div>
-                <div class="hb-row">
-                  <span class="hb-sym">λ·R(n)</span>
-                  <div class="hb-bar-wrap"><div class="hb-bar rbar" id="hbR"></div></div>
-                  <span class="hb-val" id="hbRVal">–</span>
-                  <span class="hb-desc">Risk penalty (50 × R)</span>
-                </div>
-                <div class="hb-total">
-                  <span>f(n) = </span>
-                  <span class="hb-val" id="hbFVal">–</span>
-                </div>
+          <div class="step-num" id="snum-4">05</div>
+          <div class="step-body" id="sbody-4">
+            <h3>Dynamic A* — H₂ Heuristic</h3>
+            <p>Priority function: <code>f(n) = g(n) + h<sub>d</sub>(n) + λ·R(n)</code>, with λ = 50</p>
+            <div class="heuristic-breakdown">
+              <div class="hb-row">
+                <span class="hb-sym">g(n)</span>
+                <div class="hb-bar-wrap"><div class="hb-bar gbar" id="hbG"></div></div>
+                <span class="hb-val" id="hbGVal">–</span>
+                <span class="hb-desc">Path cost so far</span>
+              </div>
+              <div class="hb-row">
+                <span class="hb-sym">h<sub>d</sub>(n)</span>
+                <div class="hb-bar-wrap"><div class="hb-bar hdbar" id="hbHd"></div></div>
+                <span class="hb-val" id="hbHdVal">–</span>
+                <span class="hb-desc">Admissible goal-distance lower bound</span>
+              </div>
+              <div class="hb-row">
+                <span class="hb-sym">λ·R(n)</span>
+                <div class="hb-bar-wrap"><div class="hb-bar rbar" id="hbR"></div></div>
+                <span class="hb-val" id="hbRVal">–</span>
+                <span class="hb-desc">Risk penalty (50 × R)</span>
+              </div>
+              <div class="hb-total">
+                <span>f(n) = </span>
+                <span class="hb-val" id="hbFVal">–</span>
               </div>
             </div>
           </div>
@@ -179,40 +374,48 @@
 
         <!-- Step 6 -->
         <div class="pipeline-step last" data-step="5">
-          <div class="step-node">
-            <div class="step-num">06</div>
-            <div class="step-body">
-              <h3>Recovery Plan Dispatched</h3>
-              <p>Optimal sequence of telecommands restoring all subsystems to nominal operational bands.</p>
-              <div id="recoveryPlan" class="recovery-plan"></div>
-              <div id="recoveryMetrics" class="recovery-metrics"></div>
-            </div>
+          <div class="step-num" id="snum-5">06</div>
+          <div class="step-body" id="sbody-5">
+            <h3>Recovery Plan Dispatched</h3>
+            <p>Optimal sequence of telecommands restoring all subsystems to nominal operational bands.</p>
+            <div id="recoveryPlan" class="recovery-plan"></div>
+            <div id="recoveryMetrics" class="recovery-metrics"></div>
           </div>
         </div>
       </div>
 
       <div class="animate-btn-row">
-        <button id="btnRunPipeline" class="btn-primary">▶ Run Full Pipeline</button>
-        <button id="btnResetPipeline" class="btn-ghost">↺ Reset</button>
+        <button id="btnRunPipeline" class="btn-primary">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run Full Pipeline
+        </button>
+        <button id="btnResetPipeline" class="btn-ghost">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          Reset
+        </button>
       </div>
     </div>
   </section>
 
-  <!-- SEARCH EXPLORER SECTION -->
+  <!-- ══════════════════════════════════════════════════════════
+       SEARCH EXPLORER SECTION
+       ══════════════════════════════════════════════════════════ -->
   <section id="section-search" class="section">
     <div class="container wide">
-      <div class="section-title">
+      <div class="section-title" style="text-align:center;margin-bottom:48px;">
+        <div class="section-label">■ &nbsp; Interactive Algorithm Visualization</div>
         <h2>Search Tree Explorer</h2>
         <p>Watch A* expand nodes, prune branches, and discover the recovery path step by step</p>
       </div>
+
       <div class="search-controls">
         <div class="ctrl-group">
           <label>Scenario</label>
           <select id="searchScenario">
-            <option value="single_thermal">🔥 Thermal Runaway</option>
-            <option value="cascade">💥 Cascade Fault</option>
-            <option value="single_power">⚡ Battery Degradation</option>
-            <option value="single_load">📡 Rogue Bus Load</option>
+            <option value="single_thermal">Thermal Runaway</option>
+            <option value="cascade">Cascade Fault</option>
+            <option value="single_power">Battery Degradation</option>
+            <option value="single_load">Rogue Bus Load</option>
           </select>
         </div>
         <div class="ctrl-group">
@@ -230,9 +433,18 @@
           <input type="range" id="searchSpeed" min="1" max="5" value="3" />
           <span id="speedLabel">Normal</span>
         </div>
-        <button id="btnStartSearch" class="btn-primary">▶ Start</button>
-        <button id="btnStepSearch" class="btn-ghost">⏭ Step</button>
-        <button id="btnResetSearch" class="btn-ghost">↺ Reset</button>
+        <button id="btnStartSearch" class="btn-primary">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Start
+        </button>
+        <button id="btnStepSearch" class="btn-ghost">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4" fill="currentColor"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+          Step
+        </button>
+        <button id="btnResetSearch" class="btn-ghost">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          Reset
+        </button>
       </div>
 
       <div class="search-layout">
@@ -252,7 +464,7 @@
           </div>
           <div id="searchOverlay" class="search-overlay hidden">
             <div class="overlay-content">
-              <div id="overlayIcon" class="overlay-icon">✅</div>
+              <div id="overlayIcon" class="overlay-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-glow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
               <div id="overlayTitle" class="overlay-title">Goal Found!</div>
               <div id="overlaySub" class="overlay-sub"></div>
             </div>
@@ -264,13 +476,13 @@
           <div class="stat-block">
             <div class="stat-item"><span class="si-label">Nodes Expanded</span><span class="si-val" id="statExpanded">0</span></div>
             <div class="stat-item"><span class="si-label">Nodes Generated</span><span class="si-val" id="statGenerated">0</span></div>
-            <div class="stat-item"><span class="si-label">Pruned (Hard Constraints)</span><span class="si-val si-pruned" id="statPruned">0</span></div>
+            <div class="stat-item"><span class="si-label">Pruned (Hard Limits)</span><span class="si-val si-pruned" id="statPruned">0</span></div>
             <div class="stat-item"><span class="si-label">Open Queue Size</span><span class="si-val" id="statOpen">0</span></div>
             <div class="stat-item"><span class="si-label">Closed Set Size</span><span class="si-val" id="statClosed">0</span></div>
             <div class="stat-item"><span class="si-label">Scorer Calls</span><span class="si-val" id="statScorer">0</span></div>
           </div>
 
-          <div class="panel-header" style="margin-top:16px">Current Node Being Expanded</div>
+          <div class="panel-header" style="margin-top:0;">Current Node</div>
           <div class="current-node-card" id="currentNodeCard">
             <div class="cn-row"><span>Depth d</span><span id="cnDepth">—</span></div>
             <div class="cn-row"><span>g(n) path cost</span><span id="cnG">—</span></div>
@@ -279,27 +491,30 @@
             <div class="cn-row total"><span>f(n) priority</span><span id="cnF">—</span></div>
           </div>
 
-          <div class="panel-header" style="margin-top:16px">Action Applied</div>
+          <div class="panel-header" style="margin-top:0;">Action Applied</div>
           <div id="currentAction" class="action-badge-wrap"></div>
 
-          <div class="panel-header" style="margin-top:16px">State at Node</div>
+          <div class="panel-header" style="margin-top:0;">State at Node</div>
           <div id="nodeTelemetry" class="node-telemetry"></div>
         </div>
       </div>
 
       <div id="solutionStrip" class="solution-strip hidden">
-        <div class="panel-header">✅ Optimal Recovery Sequence</div>
+        <div class="panel-header"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Optimal Recovery Sequence</div>
         <div id="solutionPath" class="solution-path-wrap"></div>
       </div>
     </div>
   </section>
 
-  <!-- RESULTS SECTION -->
+  <!-- ══════════════════════════════════════════════════════════
+       RESULTS SECTION
+       ══════════════════════════════════════════════════════════ -->
   <section id="section-results" class="section">
     <div class="container">
-      <div class="section-title">
+      <div class="section-title" style="text-align:center;margin-bottom:48px;">
+        <div class="section-label">■ &nbsp; Empirical Evaluation</div>
         <h2>Benchmark Results</h2>
-        <p>Empirical comparison across all 6 scenarios, algorithms, and heuristic variants (151 clean runs)</p>
+        <p>Comparison across all 6 scenarios, algorithms, and heuristic variants (151 clean runs)</p>
       </div>
 
       <div class="metric-tabs">
@@ -327,23 +542,31 @@
       </div>
 
       <div class="findings-grid">
-        <div class="finding-card">
-          <div class="fc-icon">📉</div>
+        <div class="finding-card reveal">
+          <div class="fc-icon" style="color:var(--purple)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+          </div>
           <h4>Node Reduction</h4>
           <p>H₂ vs H₀ on <em>cascade</em>: <strong>1,254 vs 2,709 nodes</strong> — 53.7% fewer expansions due to risk steering</p>
         </div>
-        <div class="finding-card">
-          <div class="fc-icon">💯</div>
+        <div class="finding-card reveal reveal-delay-1">
+          <div class="fc-icon" style="color:var(--ok)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
           <h4>Cost Optimality</h4>
           <p>A* consistently finds minimum-cost paths: g = 48.95 on thermal/cascade, g = 14.30 on power</p>
         </div>
-        <div class="finding-card">
-          <div class="fc-icon">🐢</div>
+        <div class="finding-card reveal reveal-delay-2">
+          <div class="fc-icon" style="color:var(--warn)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
           <h4>Local Search Overhead</h4>
           <p>Hill Climbing: <strong>+101.7% cost inflation</strong>, <strong>24× slower</strong> (40.8 s vs 1.69 s for A*)</p>
         </div>
-        <div class="finding-card">
-          <div class="fc-icon">❌</div>
+        <div class="finding-card reveal reveal-delay-3">
+          <div class="fc-icon" style="color:var(--danger)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
           <h4>SA Failure Mode</h4>
           <p>Simulated Annealing: only <strong>40%</strong> success on thermal, <strong>20%</strong> on cascade — random mutations break exact wait sequences</p>
         </div>
@@ -351,15 +574,17 @@
     </div>
   </section>
 
-  <!-- MATHEMATICS SECTION -->
+  <!-- ══════════════════════════════════════════════════════════
+       MATHEMATICS SECTION
+       ══════════════════════════════════════════════════════════ -->
   <section id="section-math" class="section">
     <div class="container">
-      <div class="section-title">
+      <div class="section-title" style="text-align:center;margin-bottom:48px;">
+        <div class="section-label">■ &nbsp; Formal Specification</div>
         <h2>Mathematics Reference</h2>
         <p>Complete mathematical formulation — from orbital mechanics to A* optimality proofs</p>
       </div>
 
-      <!-- Nav pills within Math -->
       <div class="math-tabs">
         <button class="math-tab active" data-mtab="orbital">Orbital Physics</button>
         <button class="math-tab" data-mtab="power">Power Budget</button>
@@ -370,21 +595,21 @@
         <button class="math-tab" data-mtab="cost">Action Costs</button>
       </div>
 
-      <!-- ── Orbital Physics ─────────────────────────────────── -->
+      <!-- ── Orbital Physics ──────────────────────────────────── -->
       <div class="math-pane active" id="mpane-orbital">
         <div class="math-card">
-          <div class="mc-title">☀ Solar Flux Model (Raised-Cosine LEO)</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Solar Flux Model (Raised-Cosine LEO)</div>
           <div class="mc-body">
             <p>The orbit is parameterised by a normalised phase $\varphi \in [0,1)$ advancing each timestep $\Delta t = 60\,\text{s}$.</p>
             <p>Let $f_{\text{ecl}} = 0.35$ be the eclipse fraction. The spacecraft is in sunlight when $\varphi < 1 - f_{\text{ecl}} = 0.65$.</p>
             <div class="eq-block">$$P_{\odot}(\varphi) = \begin{cases} P_{\max}\cos\!\left(\pi\left(\dfrac{\varphi}{1-f_{\text{ecl}}} - \tfrac{1}{2}\right)\right) & \varphi < 1 - f_{\text{ecl}} \\ 0 & \text{(eclipse)} \end{cases}$$</div>
             <p>With $P_{\max} = 280\,\text{W}$, the peak flux at sub-solar passage is $280\,\text{W}$ and the orbit-average is approximately $168\,\text{W}$.</p>
             <div class="eq-block">$$\varphi_{k+1} = \left(\varphi_k + \frac{\Delta t}{T_{\text{orbit}}}\right) \bmod 1, \qquad T_{\text{orbit}} = 5400\,\text{s}$$</div>
-            <div class="mc-insight">💡 The raised-cosine shape approximates the projection of solar irradiance onto the solar-panel surface as the satellite sweeps across the sunlit arc of its orbit.</div>
+            <div class="mc-insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> The raised-cosine shape approximates the projection of solar irradiance onto the solar-panel surface as the satellite sweeps across the sunlit arc of its orbit.</div>
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">🛰 State Space Definition</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="4"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/><line x1="2" y1="2" x2="7" y2="7"/><line x1="17" y1="17" x2="22" y2="22"/><line x1="7" y1="2" x2="7" y2="7"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="22" y1="17" x2="17" y2="17"/><line x1="17" y1="22" x2="17" y2="17"/></svg>State Space Definition</div>
           <div class="mc-body">
             <p>A search <em>state</em> $s$ is a 8-tuple encoding all subsystem variables:</p>
             <div class="eq-block">$$s = \left(\text{SoC},\; T_{\text{bat}},\; T_{\text{pay}},\; T_{\text{bus}},\; b_{\text{pay}},\; b_{\text{heat}},\; b_{\text{tx}},\; m\right)$$</div>
@@ -395,10 +620,10 @@
         </div>
       </div>
 
-      <!-- ── Power Budget ────────────────────────────────────── -->
+      <!-- ── Power Budget ─────────────────────────────────────── -->
       <div class="math-pane" id="mpane-power">
         <div class="math-card">
-          <div class="mc-title">⚡ Net Power Balance</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Net Power Balance</div>
           <div class="mc-body">
             <p>Total electrical load at timestep $k$:</p>
             <div class="eq-block">$$P_{\text{load}} = P_{\text{avionics}} + b_{\text{pay}}\,P_{\text{pay}} + b_{\text{heat}}\,P_{\text{heat}} + b_{\text{tx}}\,P_{\text{tx}} + P_{\text{fault\_load}}$$</div>
@@ -408,16 +633,16 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">🔋 State-of-Charge (SoC) Dynamics</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>State-of-Charge (SoC) Dynamics</div>
           <div class="mc-body">
             <p>With battery capacity $C_{\text{bat}} = 180{,}000\,\text{J}$ and charge/discharge efficiencies $\eta_c = 0.95$, $\eta_d = 0.97$:</p>
             <div class="eq-block">$$\Delta\text{SoC} = \begin{cases} \dfrac{P_{\text{net}}\,\eta_c\,\Delta t}{C_{\text{bat}}} & P_{\text{net}} \geq 0 \\[8pt] \dfrac{P_{\text{net}}\,\Delta t}{\eta_d\,C_{\text{bat}}} & P_{\text{net}} < 0 \end{cases}$$</div>
             <div class="eq-block">$$\text{SoC}_{k+1} = \text{clip}\left(\text{SoC}_k + \Delta\text{SoC},\; 0,\; 1\right)$$</div>
-            <div class="mc-insight">💡 Hard safety constraint: $\text{SoC} < 0.15$ triggers pruning (battery deep-discharge).</div>
+            <div class="mc-insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> Hard safety constraint: $\text{SoC} < 0.15$ triggers pruning (battery deep-discharge).</div>
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">🔥 Ohmic Dissipation in Battery</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Ohmic Dissipation in Battery</div>
           <div class="mc-body">
             <p>The power lost as heat inside the battery due to charge/discharge inefficiency:</p>
             <div class="eq-block">$$Q_{\text{bat,diss}} = |P_{\text{net}}| \cdot (1 - \eta_{c/d})$$</div>
@@ -426,10 +651,10 @@
         </div>
       </div>
 
-      <!-- ── Thermal ODEs ───────────────────────────────────── -->
+      <!-- ── Thermal ODEs ────────────────────────────────────── -->
       <div class="math-pane" id="mpane-thermal">
         <div class="math-card">
-          <div class="mc-title">🌡 Three-Node Thermal Network</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>Three-Node Thermal Network</div>
           <div class="mc-body">
             <p>Three lumped thermal nodes: Battery ($b$), Payload ($p$), Bus ($u$). Each exchanges heat with deep-space sink $T_{\text{sink}} = -90^{\circ}\text{C}$ and with neighbouring nodes.</p>
             <div class="eq-block">$$C_{\text{bat}}\,\dot{T}_{\text{bat}} = Q_{\text{bat,diss}} + Q_{\text{fault,bat}} - UA_{b,\text{sp}}(T_{\text{bat}} - T_{\text{sink}}) - UA_{b,u}(T_{\text{bat}} - T_{\text{bus}})$$</div>
@@ -440,7 +665,7 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">📐 Thermal Parameters</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>Thermal Parameters</div>
           <div class="mc-body">
             <div class="param-table">
               <div class="pt-row hdr"><span>Symbol</span><span>Value</span><span>Description</span></div>
@@ -457,7 +682,7 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">⚠ Hard Thermal Constraint (Pruning)</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Hard Thermal Constraint (Pruning)</div>
           <div class="mc-body">
             <p>A child node is pruned immediately if any physical limit is violated after the physics step:</p>
             <div class="eq-block">$$\text{INFEASIBLE}(s) \Leftrightarrow T_{\text{bat}} > 50^{\circ}\text{C} \;\lor\; T_{\text{bat}} < -15^{\circ}\text{C} \;\lor\; T_{\text{pay}} > 70^{\circ}\text{C} \;\lor\; T_{\text{pay}} < -25^{\circ}\text{C}$$</div>
@@ -466,10 +691,10 @@
         </div>
       </div>
 
-      <!-- ── Anomaly Scorer ─────────────────────────────────── -->
+      <!-- ── Anomaly Scorer ──────────────────────────────────── -->
       <div class="math-pane" id="mpane-scorer">
         <div class="math-card">
-          <div class="mc-title">📊 Sliding Window Feature Extraction</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Sliding Window Feature Extraction</div>
           <div class="mc-body">
             <p>At each node $n$, a window of $W = 10$ consecutive telemetry snapshots is collected over $m = 8$ channels (SoC, $T_{\text{bat}}$, $T_{\text{pay}}$, $T_{\text{bus}}$, $P_{\odot}$, $b_{\text{pay}}$, $b_{\text{heat}}$, $b_{\text{tx}}$). Four statistics are extracted per channel:</p>
             <div class="eq-block">$$\mathbf{z}_i = \Bigl[\,\mu_i,\; \sigma_i,\; \hat{\beta}_i,\; x_{i,W}\,\Bigr] \in \mathbb{R}^4, \qquad i = 1,\ldots,8$$</div>
@@ -479,7 +704,7 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">🌲 Isolation Forest Score</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M17 22V6a5 5 0 1 0-10 0v16"/><path d="M4 10c0 0 3-1 5 1s5-1 5-1"/><path d="M4 14c0 0 3-1 5 1s5-1 5-1"/><path d="M4 18c0 0 3-1 5 1s5-1 5-1"/></svg>Isolation Forest Score</div>
           <div class="mc-body">
             <p>An Isolation Forest of $T=200$ trees is trained on $N=2000$ nominal telemetry windows. For a query point $\mathbf{z}$, let $h_t(\mathbf{z})$ be the path length in tree $t$. The raw anomaly score:</p>
             <div class="eq-block">$$s_{\text{IF}}(\mathbf{z}) = 2^{-\,\overline{h}(\mathbf{z})\;/\;c(n_{\text{sub}})}, \qquad \overline{h}(\mathbf{z}) = \frac{1}{T}\sum_{t=1}^{T} h_t(\mathbf{z})$$</div>
@@ -488,20 +713,20 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">📐 Calibration: Empirical CDF → Risk Score</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>Calibration: Empirical CDF → Risk Score</div>
           <div class="mc-body">
             <p>Raw IF scores are calibrated via the empirical CDF of $s_{\text{IF}}$ on the nominal training set $\{\mathbf{z}^{(i)}\}_{i=1}^N$:</p>
             <div class="eq-block">$$R(n) = \hat{F}\left(s_{\text{IF}}(\mathbf{z}_n)\right) = \frac{1}{N}\sum_{i=1}^{N} \mathbf{1}\bigl[s_{\text{IF}}(\mathbf{z}^{(i)}) \leq s_{\text{IF}}(\mathbf{z}_n)\bigr]$$</div>
             <p><strong>Interpretation:</strong> $R(n) = 0.82$ means node $n$'s telemetry window is more anomalous than 82% of all nominal windows seen during training. $R(n) \in [0,1]$.</p>
-            <div class="mc-insight">💡 CDF calibration makes the risk score a proper percentile rank — scale-invariant and directly comparable across different fault magnitudes.</div>
+            <div class="mc-insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> CDF calibration makes the risk score a proper percentile rank — scale-invariant and directly comparable across different fault magnitudes.</div>
           </div>
         </div>
       </div>
 
-      <!-- ── Heuristics ─────────────────────────────────────── -->
+      <!-- ── Heuristics ────────────────────────────────────────── -->
       <div class="math-pane" id="mpane-heuristics">
         <div class="math-card">
-          <div class="mc-title">🧠 Admissible Heuristic h_d(n)</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>Admissible Heuristic h_d(n)</div>
           <div class="mc-body">
             <p>The base heuristic $h_d(n)$ lower-bounds the minimum cost to reach the goal. It is the maximum of three independent bounds:</p>
             <div class="eq-block">$$h_d(n) = \max\left(h_{\text{SoC}}(n),\; h_{T_{\text{pay}}}(n),\; h_{T_{\text{bat}}}(n)\right)$$</div>
@@ -510,45 +735,25 @@
             <p><strong>Thermal cool-down bound</strong> — minimum wait for payload to cool through radiation:</p>
             <div class="eq-block">$$h_{T_{\text{pay}}}(n) = \frac{C_{\text{pay}}}{UA_{p,\text{sp}} + UA_{p,u}} \cdot \alpha, \qquad \text{if } T_{\text{pay},n} > 55^{\circ}\text{C}$$</div>
             <p>$\alpha = 1.0$ is the latency weight. These bounds are <em>admissible</em> (never over-estimate) because they assume ideal conditions (full solar, zero additional heat).</p>
-            <div class="mc-insight">💡 Admissibility ($h_d \leq h^*$) guarantees that A* with $h_d$ alone is cost-optimal.</div>
+            <div class="mc-insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> Admissibility ($h_d \leq h^*$) guarantees that A* with $h_d$ alone is cost-optimal.</div>
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">📋 All Five Heuristic Variants</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>All Five Heuristic Variants</div>
           <div class="mc-body">
             <div class="variant-table">
               <div class="vt-row hdr"><span>Variant</span><span>Priority $f(n)$</span><span>Properties</span></div>
-              <div class="vt-row">
-                <span class="vt-tag">H₀</span>
-                <span>$f = g(n)$</span>
-                <span>Uniform Cost Search — blind, no heuristic</span>
-              </div>
-              <div class="vt-row">
-                <span class="vt-tag">H₁</span>
-                <span>$f = g(n) + h_d(n)$</span>
-                <span>Standard A* — optimal, ignores risk</span>
-              </div>
-              <div class="vt-row highlight">
-                <span class="vt-tag accent">H₂ ★</span>
-                <span>$f = g(n) + h_d(n) + \lambda R(n)$</span>
-                <span>Dynamic A* — proposed method; $\lambda = 50$</span>
-              </div>
-              <div class="vt-row">
-                <span class="vt-tag">H₃</span>
-                <span>$f = (g(n) + \lambda R(n)) + h_d(n)$</span>
-                <span>Augmented-cost A* — risk in path cost</span>
-              </div>
-              <div class="vt-row">
-                <span class="vt-tag">H₄</span>
-                <span>$f = g(n) + w\,(h_d(n) + \lambda R(n))$</span>
-                <span>Weighted A* — $w = 1.5$, sub-optimal but fast</span>
-              </div>
+              <div class="vt-row"><span class="vt-tag">H₀</span><span>$f = g(n)$</span><span>Uniform Cost Search — blind, no heuristic</span></div>
+              <div class="vt-row"><span class="vt-tag">H₁</span><span>$f = g(n) + h_d(n)$</span><span>Standard A* — optimal, ignores risk</span></div>
+              <div class="vt-row highlight"><span class="vt-tag accent">H₂ <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-left:2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span>$f = g(n) + h_d(n) + \lambda R(n)$</span><span>Dynamic A* — proposed method; $\lambda = 50$</span></div>
+              <div class="vt-row"><span class="vt-tag">H₃</span><span>$f = (g(n) + \lambda R(n)) + h_d(n)$</span><span>Augmented-cost A* — risk in path cost</span></div>
+              <div class="vt-row"><span class="vt-tag">H₄</span><span>$f = g(n) + w\,(h_d(n) + \lambda R(n))$</span><span>Weighted A* — $w = 1.5$, sub-optimal but fast</span></div>
             </div>
-            <div class="mc-insight">💡 H₂ and H₃ treat risk as a <em>tiebreaker</em> that steers expansion toward lower-risk states without inflating the solution cost — verified empirically (same $g^* = 48.95$ as H₁).</div>
+            <div class="mc-insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> H₂ and H₃ treat risk as a <em>tiebreaker</em> that steers expansion toward lower-risk states without inflating the solution cost — verified empirically (same $g^* = 48.95$ as H₁).</div>
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">⚖ Risk Penalty Weight λ</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><line x1="12" y1="3" x2="12" y2="21"/><path d="M3 10l9-7 9 7"/><path d="M3 14h18"/><path d="M21 20H3"/></svg>Risk Penalty Weight λ</div>
           <div class="mc-body">
             <p>$\lambda = 50$ was determined by grid search over $\lambda \in \{0, 5, 10, 25, 50, 100, 200\}$. It represents the cost equivalent of a fully anomalous state:</p>
             <div class="eq-block">$$\lambda \cdot R(n) \leq \lambda \cdot 1 = 50\,\text{s equivalent cost}$$</div>
@@ -557,10 +762,10 @@
         </div>
       </div>
 
-      <!-- ── A* Optimality ──────────────────────────────────── -->
+      <!-- ── A* Optimality ─────────────────────────────────────── -->
       <div class="math-pane" id="mpane-astar">
         <div class="math-card">
-          <div class="mc-title">🔍 A* Algorithm (Russell &amp; Norvig, 2020)</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>A* Algorithm (Russell &amp; Norvig, 2020)</div>
           <div class="mc-body">
             <p>A* maintains two sets — <em>Open</em> (frontier) and <em>Closed</em> (expanded). At each step:</p>
             <ol class="mc-list">
@@ -573,7 +778,7 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">✅ Optimality Guarantee</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Optimality Guarantee</div>
           <div class="mc-body">
             <p><strong>Theorem (A* optimality):</strong> If $h(n) \leq h^*(n)$ for all $n$ (admissibility), A* returns an optimal solution.</p>
             <p>For H₂: we split $f$ as $f = g + (h_d + \lambda R)$. The combined term $h_d + \lambda R$ is <em>not admissible</em> in general, so H₂ does not carry a formal optimality proof. However:</p>
@@ -582,11 +787,11 @@
               <li>The risk penalty only inflates $f$ — it never deflates $g(n^*)$ of the optimal path</li>
               <li>H₂ is a <em>consistent heuristic</em> variant: risk decreases monotonically as recovery progresses, so re-expansion of closed nodes is rare</li>
             </ul>
-            <div class="mc-insight">💡 In practice: the 53.7% node reduction from H₀ to H₂ on cascade scenarios demonstrates that risk steering provides significant computational benefit at zero cost to solution quality.</div>
+            <div class="mc-insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> In practice: the 53.7% node reduction from H₀ to H₂ on cascade scenarios demonstrates that risk steering provides significant computational benefit at zero cost to solution quality.</div>
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">📈 Complexity Analysis</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Complexity Analysis</div>
           <div class="mc-body">
             <p>Let $b = 8$ (branching factor — number of possible actions), $d$ = solution depth.</p>
             <div class="eq-block">$$\text{Worst-case nodes generated} = O(b^d)$$</div>
@@ -596,7 +801,7 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">🔄 IDA* and RBFS Variants</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>IDA* and RBFS Variants</div>
           <div class="mc-body">
             <p><strong>IDA*</strong> uses iterative deepening with a threshold $t$ on $f$:</p>
             <div class="eq-block">$$t_0 = f(\text{root}), \quad t_{i+1} = \min_{f(n) > t_i} f(n)$$</div>
@@ -608,10 +813,10 @@
         </div>
       </div>
 
-      <!-- ── Action Costs ───────────────────────────────────── -->
+      <!-- ── Action Costs ────────────────────────────────────── -->
       <div class="math-pane" id="mpane-cost">
         <div class="math-card">
-          <div class="mc-title">💰 Action Cost Model</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>Action Cost Model</div>
           <div class="mc-body">
             <p>Each action $a$ has a cost $c(a)$ that linearly combines latency $\tau_a$ and energy $\varepsilon_a$:</p>
             <div class="eq-block">$$g(n' ) = g(n) + c(a) = g(n) + \alpha\,\tau_a + \beta\,\varepsilon_a$$</div>
@@ -629,7 +834,7 @@
           </div>
         </div>
         <div class="math-card">
-          <div class="mc-title">🎯 Solution Cost Interpretation</div>
+          <div class="mc-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="display:inline-block;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Solution Cost Interpretation</div>
           <div class="mc-body">
             <p>For the <em>Thermal Runaway</em> scenario, the optimal recovery is:</p>
             <div class="eq-block">$$g^* = c(\text{payload\_off}) + 5\times c(\text{wait}) = 5.10 + 5 \times 60.00 = 305.10\,?$$</div>
@@ -643,8 +848,11 @@
     </div>
   </section>
 
+  <!-- Scripts -->
+  <script src="icons.js"></script>
   <script src="data.js"></script>
   <script src="search_sim.js"></script>
   <script src="app.js"></script>
+  <script src="ui-enhancements.js"></script>
 </body>
 </html>

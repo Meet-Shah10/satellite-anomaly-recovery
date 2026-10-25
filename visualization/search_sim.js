@@ -432,10 +432,14 @@ class SearchTreeRenderer {
         ctx.fillText('f=' + node.f.toFixed(0), x, y + r + 12);
       }
       if (status === 'pruned') {
-        ctx.font = 'bold 9px Inter';
-        ctx.fillStyle = '#a855f7';
-        ctx.textAlign = 'center';
-        ctx.fillText('✗', x, y + r + 12);
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 3.5, y + r + 8.5);
+        ctx.lineTo(x + 3.5, y + r + 15.5);
+        ctx.moveTo(x + 3.5, y + r + 8.5);
+        ctx.lineTo(x - 3.5, y + r + 15.5);
+        ctx.stroke();
       }
     }
     ctx.textAlign = 'left';

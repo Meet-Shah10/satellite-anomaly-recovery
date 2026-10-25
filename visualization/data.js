@@ -19,12 +19,12 @@ const SCENARIOS = {
     },
     riskScore: 0.91,
     recovery: [
-      { action: 'payload_off',     cost: 5.10,  icon: '🔌', desc: 'Stop payload heat generation' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Allow thermal cooling' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Allow thermal cooling' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Allow thermal cooling' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Allow thermal cooling' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Allow thermal cooling' },
+      { action: 'payload_off',     cost: 5.10,  icon: 'powerOff', desc: 'Stop payload heat generation' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Allow thermal cooling' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Allow thermal cooling' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Allow thermal cooling' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Allow thermal cooling' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Allow thermal cooling' },
     ],
     metrics: { success: true, cost: 48.95, nodes_expanded: 1019, time_to_stable: 360, safety_margin: 0.084, wall_time: 1.69 }
   },
@@ -43,10 +43,10 @@ const SCENARIOS = {
     },
     riskScore: 0.87,
     recovery: [
-      { action: 'transmitter_off', cost: 3.05,  icon: '📡', desc: 'Shed 20 W transmitter load' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Solar recharging begins' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'SoC climbing toward 0.35' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Continued charge build-up' },
+      { action: 'transmitter_off', cost: 3.05,  icon: 'antenna', desc: 'Shed 20 W transmitter load' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',   desc: 'Solar recharging begins' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',   desc: 'SoC climbing toward 0.35' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',   desc: 'Continued charge build-up' },
     ],
     metrics: { success: true, cost: 14.30, nodes_expanded: 5, time_to_stable: 300, safety_margin: 0.059, wall_time: 0.015 }
   },
@@ -64,10 +64,10 @@ const SCENARIOS = {
     },
     riskScore: 0.84,
     recovery: [
-      { action: 'safe_mode', cost: 15.30, icon: '🛡️', desc: 'Max load shed (payload+tx+avionics)' },
-      { action: 'wait',      cost: 60.00, icon: '⏳', desc: 'Solar recharge' },
-      { action: 'wait',      cost: 60.00, icon: '⏳', desc: 'Solar recharge' },
-      { action: 'wait',      cost: 60.00, icon: '⏳', desc: 'SoC recovering' },
+      { action: 'safe_mode', cost: 15.30, icon: 'shield', desc: 'Max load shed (payload+tx+avionics)' },
+      { action: 'wait',      cost: 60.00, icon: 'clock',  desc: 'Solar recharge' },
+      { action: 'wait',      cost: 60.00, icon: 'clock',  desc: 'Solar recharge' },
+      { action: 'wait',      cost: 60.00, icon: 'clock',  desc: 'SoC recovering' },
     ],
     metrics: { success: true, cost: 11.25, nodes_expanded: 4, time_to_stable: 240, safety_margin: 0.059, wall_time: 0.013 }
   },
@@ -87,12 +87,12 @@ const SCENARIOS = {
     },
     riskScore: 0.96,
     recovery: [
-      { action: 'payload_off',     cost: 5.10,  icon: '🔌', desc: 'Stop thermal runaway source' },
-      { action: 'transmitter_off', cost: 3.05,  icon: '📡', desc: 'Shed electrical load for SoC' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Parallel thermal cool + solar charge' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Parallel thermal cool + solar charge' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Parallel thermal cool + solar charge' },
-      { action: 'wait',            cost: 60.00, icon: '⏳', desc: 'Parallel thermal cool + solar charge' },
+      { action: 'payload_off',     cost: 5.10,  icon: 'powerOff', desc: 'Stop thermal runaway source' },
+      { action: 'transmitter_off', cost: 3.05,  icon: 'antenna',  desc: 'Shed electrical load for SoC' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Parallel thermal cool + solar charge' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Parallel thermal cool + solar charge' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Parallel thermal cool + solar charge' },
+      { action: 'wait',            cost: 60.00, icon: 'clock',    desc: 'Parallel thermal cool + solar charge' },
     ],
     metrics: { success: true, cost: 48.95, nodes_expanded: 1254, time_to_stable: 360, safety_margin: 0.082, wall_time: 2.33 }
   }
@@ -109,15 +109,15 @@ const VARIANTS = {
 
 // ── Commands with metadata ────────────────────────────────────────────────
 const COMMANDS = {
-  payload_off:     { icon: '🔌', latency: 5,  energy: 10,  cost: 5.10,  desc: 'Turn off payload (-40 W thermal)' },
-  payload_on:      { icon: '🔋', latency: 30, energy: 50,  cost: 30.50, desc: 'Restore payload power' },
-  heater_on:       { icon: '🌡', latency: 2,  energy: 5,   cost: 2.05,  desc: 'Enable payload heater (+15 W)' },
-  heater_off:      { icon: '❄️', latency: 2,  energy: 5,   cost: 2.05,  desc: 'Disable payload heater (-15 W)' },
-  low_power_mode:  { icon: '💤', latency: 10, energy: 20,  cost: 10.20, desc: 'Throttle avionics 30→18 W' },
-  resume_nominal:  { icon: '🔄', latency: 10, energy: 20,  cost: 10.20, desc: 'Restore full avionics' },
-  transmitter_off: { icon: '📡', latency: 3,  energy: 5,   cost: 3.05,  desc: 'Shed 20 W transmitter load' },
-  safe_mode:       { icon: '🛡️', latency: 15, energy: 30,  cost: 15.30, desc: 'Maximum power save (all off)' },
-  wait:            { icon: '⏳', latency: 60, energy: 0,   cost: 60.00, desc: 'Hold configuration, advance physics' },
+  payload_off:     { icon: 'powerOff',   latency: 5,  energy: 10,  cost: 5.10,  desc: 'Turn off payload (-40 W thermal)' },
+  payload_on:      { icon: 'battery',    latency: 30, energy: 50,  cost: 30.50, desc: 'Restore payload power' },
+  heater_on:       { icon: 'thermometer',latency: 2,  energy: 5,   cost: 2.05,  desc: 'Enable payload heater (+15 W)' },
+  heater_off:      { icon: 'thermometer',latency: 2,  energy: 5,   cost: 2.05,  desc: 'Disable payload heater (-15 W)' },
+  low_power_mode:  { icon: 'moon',       latency: 10, energy: 20,  cost: 10.20, desc: 'Throttle avionics 30→18 W' },
+  resume_nominal:  { icon: 'refreshCw',  latency: 10, energy: 20,  cost: 10.20, desc: 'Restore full avionics' },
+  transmitter_off: { icon: 'antenna',    latency: 3,  energy: 5,   cost: 3.05,  desc: 'Shed 20 W transmitter load' },
+  safe_mode:       { icon: 'shield',     latency: 15, energy: 30,  cost: 15.30, desc: 'Maximum power save (all off)' },
+  wait:            { icon: 'clock',      latency: 60, energy: 0,   cost: 60.00, desc: 'Hold configuration, advance physics' },
 };
 
 // ── Benchmark results from results.csv ───────────────────────────────────
